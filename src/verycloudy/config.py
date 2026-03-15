@@ -30,6 +30,9 @@ FILEPATH_CLOUDS_TEST = DATA_DIR / "cloud_gallery_testset.csv"
 FILEPATH_DATE_CSV = DATA_DIR / "clouds_date.csv"
 FILEPATH_DATE_TEST = DATA_DIR / "clouds_date_testset.csv"
 
+FILEPATH_CLOUDS_WITH_DATE_TESTSET = DATA_DIR / "cloud_gallery_with_date_testset.csv"
+FILEPATH_LOCATION_TEST = DATA_DIR / "clouds_location_test.csv"
+
 
 FILEPATH_JSON_CHECKPOINT2 = DATA_DIR / "cloud_gallery_checkpoint2.jsonl"
 FILEPATH_CSV_CHECKPOINT2 = DATA_DIR / "cloud_gallery_checkpoint2.csv"
@@ -60,6 +63,14 @@ DEFAULT_HEADERS = {
     "User-Agent": "CaptureDateExtractor/1.0 (+metadata-only; contact if needed)",
     "Accept": "*/*",
 }
+
+# --------------------------------
+# Parameters for location extraction
+# --------------------------------
+OWM_GEOCODING_URL = "http://api.openweathermap.org/geo/1.0/direct"
+NOMINATIM_USER_AGENT = "verycloudy/1.0 (thesis project)"
+NOMINATIM_DELAY = 1.1   # seconds between calls — Nominatim ToS: max 1 req/sec
+OWM_GEOCODING_CONCURRENCY = 10
 
 FILENAME_DATETIME_PATTERNS = [
     # 1) Start-of-name 14 digits: YYYYMMDDHHMMSS
