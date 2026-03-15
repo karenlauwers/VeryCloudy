@@ -31,3 +31,4 @@ geopy
 pycountry
 aiohttp
 exifread
+python-dotenv
