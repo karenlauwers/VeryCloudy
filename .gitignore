@@ -1,0 +1,78 @@
+# --- Project folders to ignore ---
+VeryCloudy/data/
+VeryCloudy/images/
+
+# --- Project file(s) to ignore ---
+very_cloudy_pitch.pptx
+
+# If you don't want to track your VS Code workspace file, uncomment:
+# settings_of_verycloudy.code-workspace
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+*.pkl
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Build / packaging
+build/
+dist/
+*.egg
+*.egg-info/
+.installed.cfg
+.eggs/
+
+# Coverage / testing
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+
+# Type checkers / linters
+.mypy_cache/
+.pytype/
+.pyre/
+
+# --- Jupyter Notebooks ---
+.ipynb_checkpoints/
+# Jupyter runtime files
+.jupyter/
+# Optional: if you export HTML or other outputs locally
+*.nbconvert.ipynb
+
+# --- OS / Editor junk ---
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+# Linux
+*~
+
+# VS Code settings (keep if you want workspace settings in git)
+.vscode/
+# If you prefer to keep only specific VS Code settings, you can whitelist:
+# .vscode/*
+# !.vscode/settings.json
+
+# --- Logs / temp ---
+*.log
+logs/
+tmp/
+temp/
