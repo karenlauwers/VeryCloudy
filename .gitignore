@@ -75,3 +75,7 @@ Desktop.ini
 logs/
 tmp/
 temp/
+
+# Keys, stuff not for your eyes
+.env
+.env.*
