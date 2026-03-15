@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "verycloudy"
+version = "0.1.0"
+description = "Eindproef Data Science jaar 1"
+authors = [{name = "Karen Lauwers"}]
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+where = ["src"]
