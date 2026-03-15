@@ -5,8 +5,7 @@ images/
 # --- Project file(s) to ignore ---
 very_cloudy_pitch.pptx
 
-# If you don't want to track your VS Code workspace file, uncomment:
-# settings_of_verycloudy.code-workspace
+settings_of_verycloudy.code-workspace
 
 # --- Python ---
 __pycache__/
