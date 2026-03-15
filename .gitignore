@@ -1,6 +1,6 @@
 # --- Project folders to ignore ---
-VeryCloudy/data/
-VeryCloudy/images/
+data/
+images/
 
 # --- Project file(s) to ignore ---
 very_cloudy_pitch.pptx
