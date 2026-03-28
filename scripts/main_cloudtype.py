@@ -1,0 +1,14 @@
+"""
+Entry point for Task C — cloud type and subtype extraction.
+
+Usage:
+    python scripts/main_cloudtype.py
+"""
+
+from verycloudy.config import (
+    FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER,
+    FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TYPE,
+)
+from cloudtype import run
+
+run(FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER, FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TYPE)
