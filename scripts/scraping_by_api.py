@@ -419,39 +419,4 @@ def crawl_all_clouds(
 
     return all_rows
 
-# ----------------
-# Example usage
-# ----------------
-if __name__ == "__main__":
-    # If you need your login/session cookies, paste the Cookie header string here.
-    COOKIE = "aelia_customer_country=BE; aelia_cs_selected_currency=EUR; _fbp=fb.1.1766520637694.334427161.AQ"  # e.g., "wordpress_logged_in_xxx=...; aelia_cs_selected_currency=EUR; ..."
 
-    # Load previously scraped IDs from final (previous) file
-    seen_ids = load_seen_ids_from_csv(FILEPATH_CLOUDS_CSV)
-
-    rows = crawl_all_clouds(
-        cats="",               # all categories
-        photographer="",       # all photographers
-        sleep_sec=0.8,
-        max_pages=None,        # None => keep going until exhausted
-        cookie_string=COOKIE,
-        seen_ids=seen_ids,
-        stop_when_all_seen_pages=3, 
-    )
-
-    # Let op: save csv of jsonl overschrijft de hele csv, dat is niet append dus gebruik dat niet op de originele file als je de nieuwe cloud_cards gaat scrapen!!!
-    # Ik zet hier nu een filename die niet bestaat, om te vermijden dat je de huidige file helemaal gaat overschrijven...
-    save_csv(rows, FILEPATH_CLOUDS_APPEND_CSV)
-    save_jsonl(rows, FILEPATH_CLOUDS_APPEND_JSON)
-
-# ok: de filepaths en zo in de src zetten
-# to do: een styling bouwen 
-# to do: de runs apart in een file zetten, best apart voor eerste run, en nieuwe run. En de scraping by selenium laten staan en ook kunnen uitleggen en daar 
-# Uitzoeken wat crawl precies doet = ok 
-# Nieuwe data ophalen van de website: to do en dan in nieuwe file wegschrijven 
-# Datum en uur goed zetten volgens stappenplan inclusief met verwijzing naar sunset enzo  
-# Locatie bepalen met lengte en breedtegraad 
-# Namen van de clouds in een kolom zetten - kijken of je beter meer kolommen neemt voor verschillende wolkennamen? en kijken hoever je gaat in detail? Best basic
-# Weather data uitvlooien 
-# Weather-file maken met de informatie van de locaties - 
-# Uitzoeken wat Tim gezegd heeft over dat je moet beginnen met cloudy - uncloudy -- eens uitzoeken hoe dat zit die opmerking 
