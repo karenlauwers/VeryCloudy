@@ -103,14 +103,18 @@ def _local_to_unix(date_str, time_str, lat: float, lon: float) -> int | None:
 
 WEATHER_FIELDS = [
     "lightbox_id", "dt_unix", "date_taken_utc", "time_taken_utc",
-    "temp", "feels_like", "pressure", "humidity", "dew_point", "clouds",
+    "temp", "feels_like", "pressure", "humidity", "dew_point",
+    "clouds", "clouds_low", "clouds_mid", "clouds_high",
     "wind_speed", "wind_deg", "wind_gust", "visibility",
     "weather_code", "rain_1h", "snow_1h", "uvi",
 ]
 
+# Note: temperature_850hPa, temperature_500hPa and cape are NOT available in the
+# Open-Meteo historical archive endpoint (units returned as "undefined"). Omitted.
 OPEN_METEO_VARS = (
     "temperature_2m,apparent_temperature,relative_humidity_2m,dew_point_2m,"
-    "pressure_msl,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m,"
+    "pressure_msl,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,"
+    "wind_speed_10m,wind_direction_10m,wind_gusts_10m,"
     "visibility,rain,snowfall,weather_code,uv_index"
 )
 
@@ -185,6 +189,9 @@ async def fetch_weather(
         "dew_point":    _h("dew_point_2m"),
         "pressure":     _h("pressure_msl"),
         "clouds":       _h("cloud_cover"),
+        "clouds_low":   _h("cloud_cover_low"),
+        "clouds_mid":   _h("cloud_cover_mid"),
+        "clouds_high":  _h("cloud_cover_high"),
         "wind_speed":   _h("wind_speed_10m"),
         "wind_deg":     _h("wind_direction_10m"),
         "wind_gust":    _h("wind_gusts_10m"),
