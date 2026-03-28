@@ -19,15 +19,24 @@ SCRIPT_DIR = PROJECT_ROOT / "scripts"
 
 # File paths 
 FILEPATH_CLOUDS_CSV = DATA_DIR / "cloud_gallery.csv"
+FILEPATH_CLOUDS_WITH_DATE = DATA_DIR / "cloud_gallery_with_date.csv"
+FILEPATH_CLOUDS_WITH_DATE_LOC = DATA_DIR / "cloud_gallery_with_date_loc.csv"
+FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER = DATA_DIR / "cloud_gallery_with_date_loc_weather.csv"
+FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TYPE = DATA_DIR / "cloud_gallery_full.csv"
+
+FILEPATH_DATE = DATA_DIR / "clouds_date.csv"
+FILEPATH_LOCATION = DATA_DIR / "clouds_location.csv"
+FILEPATH_WEATHER = DATA_DIR / "clouds_weather.csv"
+
+
 FILEPATH_CLOUDS_APPEND_CSV = DATA_DIR / "cloud_gallery_append.csv"
 FILEPATH_CLOUDS_JSON = DATA_DIR / "cloud_gallery.jsonl"
 FILEPATH_CLOUDS_APPEND_JSON = DATA_DIR / "cloud_gallery_append.jsonl"
 FILEPATH_JSON_CHECKPOINT = DATA_DIR / "cloud_gallery_checkpoint.jsonl"
 FILEPATH_CSV_CHECKPOINT = DATA_DIR / "cloud_gallery_checkpoint.csv"
 
+FILEPATH_DATE_APPEND_CSV = DATA_DIR / "clouds_date_append.csv"
 FILEPATH_CLOUDS_TEST = DATA_DIR / "cloud_gallery_testset.csv"
-
-FILEPATH_DATE_CSV = DATA_DIR / "clouds_date.csv"
 FILEPATH_DATE_TEST = DATA_DIR / "clouds_date_testset.csv"
 
 FILEPATH_CLOUDS_WITH_DATE_TESTSET = DATA_DIR / "cloud_gallery_with_date_testset.csv"
@@ -36,6 +45,8 @@ FILEPATH_LOCATION_TEST = DATA_DIR / "clouds_location_test.csv"
 FILEPATH_LOCATION_TEST_V2 = DATA_DIR / "clouds_location_test_v2.csv"
 FILEPATH_LOCATION_TEST_V3 = DATA_DIR / "clouds_location_test_v3.csv"
 FILEPATH_WEATHER_TEST = DATA_DIR / "clouds_weather_test.csv"
+FILEPATH_WEATHER_TEST_V2 = DATA_DIR / "clouds_weather_test_v2.csv"
+FILEPATH_WEATHER_TEST_V3 = DATA_DIR / "clouds_weather_test_v3.csv"
 
 FILEPATH_JSON_CHECKPOINT2 = DATA_DIR / "cloud_gallery_checkpoint2.jsonl"
 FILEPATH_CSV_CHECKPOINT2 = DATA_DIR / "cloud_gallery_checkpoint2.csv"
@@ -78,9 +89,9 @@ OWM_GEOCODING_CONCURRENCY = 10
 # --------------------------------
 # Parameters for weather extraction
 # --------------------------------
-OWM_WEATHER_URL = "https://api.openweathermap.org/data/3.0/onecall/timemachine"
-OWM_WEATHER_CONCURRENCY = 5   # max concurrent OWM weather requests
-OWM_WEATHER_DELAY = 0.2       # seconds between requests (extra safety margin)
+OPEN_METEO_URL = "https://archive-api.open-meteo.com/v1/archive"
+OPEN_METEO_CONCURRENCY = 3   # keep well under burst limit
+OPEN_METEO_DELAY = 0.5       # ~6 req/s max across all workers
 
 FILENAME_DATETIME_PATTERNS = [
     # 1) Start-of-name 14 digits: YYYYMMDDHHMMSS
