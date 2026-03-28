@@ -181,7 +181,7 @@ Make one request per row, rate‑limited well below OWM's limits.
 
 ### 4.4 Task C — Extract cloud types and subtypes
 
-**Goal:** From the column `tags` in the base file, extract:
+**Goal:** From `title` in the base file, check if there is one of the main primary cloud types. If there is, set this to column type1. If in the `title` there is one of the subtypes of clouds, set this to subtype2. Then, take a look at the column `tags` in the base file and go on for setting types and subtypes. Do not overwrite if you already set a type or subtype. Extract:
 
 **Primary cloud types (max 3)**
 
