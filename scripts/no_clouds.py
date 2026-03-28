@@ -33,7 +33,8 @@ from verycloudy.config import (
 # Configuration
 # -------------------------
 
-TARGET_ROWS = 5000   # adjust after seeing per-class distribution in Part 3
+TARGET_ROWS = 100   # adjust after seeing per-class distribution in Part 3
+MAX_PER_LOCATION = 10  # max clear-sky rows taken per location (ensures geographic spread)
 
 # Date range to draw random months from (matches the CAS gallery dataset)
 YEAR_MIN = 2005
@@ -117,7 +118,7 @@ async def fetch_month(
 
     async with sem:
         try:
-            for attempt in range(3):
+            for _ in range(3):
                 async with session.get(OPEN_METEO_URL, params=params) as resp:
                     if resp.status == 429:
                         print("  [RATE LIMIT] waiting 60s ...")
@@ -288,13 +289,17 @@ async def run(locations_csv: Path, out_csv: Path, target: int = TARGET_ROWS):
                     clear_hours = await fetch_month(session, sem, lat, lon, year, month)
 
                 rng.shuffle(clear_hours)
+                loc_count = 0
                 for weather in clear_hours:
                     if collected >= target:
+                        break
+                    if loc_count >= MAX_PER_LOCATION:
                         break
                     row = build_row(loc, weather, counter)
                     buffer.append(row)
                     counter += 1
                     collected += 1
+                    loc_count += 1
                     pbar.update(1)
 
                     if len(buffer) >= BATCH_FLUSH:
