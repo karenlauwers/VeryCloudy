@@ -49,6 +49,10 @@ coverage.xml
 .ipynb_checkpoints/
 # Jupyter runtime files
 .jupyter/
+
+#Jupyter notebook 
+notebook/stuff.ipynb 
+
 # Optional: if you export HTML or other outputs locally
 *.nbconvert.ipynb
 
