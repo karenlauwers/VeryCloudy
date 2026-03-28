@@ -243,6 +243,41 @@ From the official WMO 10 main genera:
 - Second match → `subtype2`
 - Ignore the rest.
 
+
+** Update ** 
+- Sometimes, there are subtypes without mention of a main type. 
+- We will fix this by adding the most common main type for that subtype. We only choose 1 cloudtype - there may be more, but we won't take them into account. 
+- We then add a column with "cloud_type_fix" = True, otherwise: false 
+- Like this if subtype1 -> then cloud_type1: 
+  - 'volutus'-> 'altocumulus'
+  - 'arcus' -> 'cumulomimbus'
+  - 'radiatus'-> 'cumulus'
+  - 'cavum'-> 'altocumulus'
+  - 'mamma'-> 'cumulonimbus'
+  - 'tuba' -> 'cumulonimbus'
+  - 'lacunosus' -> 'cirrocumulus'
+  - 'lenticularis'-> 'altocumulus'
+  - 'pileus' -> 'cumulus'
+  - 'horsehoe vortex' -> 'cumulus'
+  - 'fluctus'->'cirrus'
+  - 'asperitas'-> 'stratocumulus'
+  - 'uncinus'-> 'cirrus'
+  - 'floccus' -> 'cirrus'
+  - 'castellanus' -> 'altocumulus'
+  - 'distrail' -> 'altocumulus'
+  - 'contrail'-> 'cirrus'
+  - 'pyrocumulus'-> 'cumulus'
+  - 'congestus'->'cumulus'
+  - 'velum' -> 'cumulus'
+  - 'pannus' -> 'cumulonimbus'
+  - 'fractus' -> 'cumulus'
+  - 'murus'-> 'cumulonimbus'
+  - 'virga' -> 'altostratus'
+  - 'fog' -> 'stratus'
+  - 'fibrates' -> 'cirrus'
+  - 'undulatus' -> 'altocumulus'
+  - 'cap cloud' -> 'stratus'
+
 ---
 
 ## 5. Agentic Engineering Guidelines
