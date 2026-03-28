@@ -51,7 +51,7 @@ coverage.xml
 .jupyter/
 
 #Jupyter notebook 
-notebook/stuff.ipynb 
+notebooks/stuff.ipynb
 
 # Optional: if you export HTML or other outputs locally
 *.nbconvert.ipynb
