@@ -32,3 +32,4 @@ pycountry
 aiohttp
 exifread
 python-dotenv
+timezonefinder

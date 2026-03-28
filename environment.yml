@@ -31,6 +31,7 @@ dependencies:
     - rich==13.5.2
     - PyMuPDF==1.23.3
     - netCDF4==1.7.3
+    - timezonefinder
   - pydot=1.4
   - python=3.10
   - requests=2.31
