@@ -31,8 +31,11 @@ FILEPATH_DATE_CSV = DATA_DIR / "clouds_date.csv"
 FILEPATH_DATE_TEST = DATA_DIR / "clouds_date_testset.csv"
 
 FILEPATH_CLOUDS_WITH_DATE_TESTSET = DATA_DIR / "cloud_gallery_with_date_testset.csv"
+FILEPATH_CLOUDS_WITH_DATE_LOCATION_TESTSET = DATA_DIR / "cloud_gallery_with_date_location_testset.csv"
 FILEPATH_LOCATION_TEST = DATA_DIR / "clouds_location_test.csv"
-
+FILEPATH_LOCATION_TEST_V2 = DATA_DIR / "clouds_location_test_v2.csv"
+FILEPATH_LOCATION_TEST_V3 = DATA_DIR / "clouds_location_test_v3.csv"
+FILEPATH_WEATHER_TEST = DATA_DIR / "clouds_weather_test.csv"
 
 FILEPATH_JSON_CHECKPOINT2 = DATA_DIR / "cloud_gallery_checkpoint2.jsonl"
 FILEPATH_CSV_CHECKPOINT2 = DATA_DIR / "cloud_gallery_checkpoint2.csv"
@@ -71,6 +74,13 @@ OWM_GEOCODING_URL = "http://api.openweathermap.org/geo/1.0/direct"
 NOMINATIM_USER_AGENT = "verycloudy/1.0 (thesis project)"
 NOMINATIM_DELAY = 1.1   # seconds between calls — Nominatim ToS: max 1 req/sec
 OWM_GEOCODING_CONCURRENCY = 10
+
+# --------------------------------
+# Parameters for weather extraction
+# --------------------------------
+OWM_WEATHER_URL = "https://api.openweathermap.org/data/3.0/onecall/timemachine"
+OWM_WEATHER_CONCURRENCY = 5   # max concurrent OWM weather requests
+OWM_WEATHER_DELAY = 0.2       # seconds between requests (extra safety margin)
 
 FILENAME_DATETIME_PATTERNS = [
     # 1) Start-of-name 14 digits: YYYYMMDDHHMMSS

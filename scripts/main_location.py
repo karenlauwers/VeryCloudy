@@ -12,7 +12,7 @@ from pathlib import Path
 import asyncio
 import os
 
-from verycloudy.config import FILEPATH_CLOUDS_WITH_DATE_TESTSET, FILEPATH_LOCATION_TEST
+from verycloudy.config import FILEPATH_CLOUDS_WITH_DATE_TESTSET, FILEPATH_LOCATION_TEST_V3
 from location import run
 
 
@@ -43,7 +43,7 @@ async def main():
             "- Create a .env with:  OWM_API_KEY=YOUR_KEY  (recommended, at project root), OR\n"
             "- Set OWM_API_KEY in your OS/IDE environment."
         )
-    await run(FILEPATH_CLOUDS_WITH_DATE_TESTSET, FILEPATH_LOCATION_TEST, api_key)
+    await run(FILEPATH_CLOUDS_WITH_DATE_TESTSET, FILEPATH_LOCATION_TEST_V3, api_key)
 
 
 if __name__ == "__main__":

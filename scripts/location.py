@@ -18,6 +18,7 @@ import pandas as pd
 from PIL import Image
 from tqdm import tqdm
 
+import pycountry
 import spacy
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
@@ -199,35 +200,134 @@ def extract_location_from_metadata(img_bytes: bytes) -> dict | None:
 _PREP_PATTERN = re.compile(
     r"(?:in|over|near|above|from|at|around|of)\s+"
     r"("
-    r"[A-Z][a-zA-Z\u00C0-\u024F\s\-]+"
-    r"(?:,\s*[A-Z][a-zA-Z\u00C0-\u024F\s\-]+){0,2}"
+    r"[A-Z][a-zA-Z\u00C0-\u024F\s\-'.]+"
+    r"(?:,\s*[A-Z][a-zA-Z\u00C0-\u024F\s\-'.]+){0,3}"
     r")"
-    r"(?=[,\.;]|\s+[a-z]|$)",
+    r"(?=[,;]|\.\s|\.$|\s+[a-z]|$)",
+    flags=re.UNICODE,
+)
+
+_FROM_TO_PATTERN = re.compile(
+    r"(?:to|towards)\s+"
+    r"("
+    r"[A-Z][a-zA-Z\u00C0-\u024F\s\-'.]+"
+    r"(?:,\s*[A-Z][a-zA-Z\u00C0-\u024F\s\-'.]+){0,3}"
+    r")"
+    r"(?=[,;]|\.\s|\.$|\s+[a-z]|$)",
+    flags=re.UNICODE,
+)
+
+_TRAILING_PATTERN = re.compile(
+    r"(?:,\s*)"
+    r"("
+    r"[A-Z][a-zA-Z\u00C0-\u024F\s\-'.]+"
+    r"(?:,\s*[A-Z][a-zA-Z\u00C0-\u024F\s\-'.]+){1,3}"
+    r")"
+    r"\s*[,.]?\s*$",
     flags=re.UNICODE,
 )
 
 
-def extract_location_from_title(title: str, nlp) -> str | None:
+# -------------------------
+# Country name detection
+# -------------------------
+
+def _build_country_lookup() -> dict[str, str]:
+    """Build lowercase country name -> ISO alpha-2 code lookup."""
+    lookup = {}
+    for c in pycountry.countries:
+        lookup[c.name.lower()] = c.alpha_2
+        if hasattr(c, "common_name"):
+            lookup[c.common_name.lower()] = c.alpha_2
+        if hasattr(c, "official_name"):
+            lookup[c.official_name.lower()] = c.alpha_2
+    extras = {
+        "uk": "GB", "u.k.": "GB", "u.k": "GB",
+        "us": "US", "u.s.": "US", "u.s": "US", "usa": "US",
+        "uae": "AE",
+    }
+    lookup.update({k.lower(): v for k, v in extras.items()})
+    return lookup
+
+_COUNTRY_LOOKUP = _build_country_lookup()
+
+
+def is_country_name(name: str) -> str | None:
+    """Returns ISO alpha-2 code if name is a known country, else None."""
+    return _COUNTRY_LOOKUP.get(name.strip().lower())
+
+
+_TITLE_ABBREVIATIONS = {
+    "U.K.": "UK", "U.K": "UK",
+    "U.S.A.": "USA", "U.S.A": "USA",
+    "U.S.": "US", "U.S": "US",
+}
+
+
+def _normalize_title(title: str) -> str:
+    """Normalize common abbreviations in titles for better matching."""
+    for old, new in _TITLE_ABBREVIATIONS.items():
+        title = title.replace(old, new)
+    return title
+
+
+_GEO_NOISE = re.compile(
+    r"\b(?:the|National Park|Beach|Desert|mountains?|hills?|"
+    r"valley|coast|channel|river|lake|harbour|harbor|gulf|"
+    r"peninsula|island)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def _strip_noise(location_str: str) -> str:
+    """Strip geographic noise words that confuse geocoders."""
+    cleaned = _GEO_NOISE.sub("", location_str)
+    # Collapse multiple spaces
+    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip().strip(",").strip()
+    return cleaned
+
+
+def extract_location_from_title(title: str, nlp, nlp_lg=None) -> tuple[str, str] | None:
     """
-    Step 1: preposition-anchored regex covering:
-      - country only         e.g. "in France"
-      - city, country        e.g. "over Paris, France"
-      - city, region, country e.g. "near Paris, Île-de-France, France"
-    Step 2: spaCy GPE/LOC NER as fallback.
-    Returns a location string or None.
+    Step 1: preposition-anchored regex
+    Step 2: "to/towards" regex for travel titles
+    Step 3: trailing comma-separated location pattern
+    Step 4: spaCy en_core_web_sm NER
+    Step 5: spaCy en_core_web_lg NER (if available)
+    Returns (location_string, method) or None.
     """
     if not title or not isinstance(title, str):
         return None
 
-    m = _PREP_PATTERN.search(title)
-    if m:
-        return m.group(1).strip().rstrip(",").strip()
+    normalized = _normalize_title(title)
 
-    # spaCy fallback
-    doc = nlp(title)
+    # Step 1: preposition-anchored regex
+    m = _PREP_PATTERN.search(normalized)
+    if m:
+        return (m.group(1).strip().rstrip(",").strip(), "title_regex")
+
+    # Step 2: "to/towards" regex for travel-style titles
+    m = _FROM_TO_PATTERN.search(normalized)
+    if m:
+        return (m.group(1).strip().rstrip(",").strip(), "title_regex")
+
+    # Step 3: trailing comma-separated location pattern
+    m = _TRAILING_PATTERN.search(normalized)
+    if m:
+        return (m.group(1).strip().rstrip(",").strip(), "title_regex")
+
+    # Step 4: spaCy en_core_web_sm fallback
+    doc = nlp(normalized)
     entities = [ent.text for ent in doc.ents if ent.label_ in ("GPE", "LOC")]
     if entities:
-        return ", ".join(entities)
+        return (", ".join(entities), "title_spacy")
+
+    # Step 5: spaCy en_core_web_lg fallback (if available)
+    if nlp_lg:
+        doc = nlp_lg(normalized)
+        entities = [ent.text for ent in doc.ents if ent.label_ in ("GPE", "LOC")]
+        if entities:
+            return (", ".join(entities), "title_spacy_lg")
 
     return None
 
@@ -283,12 +383,50 @@ async def geocode_nominatim(location_str: str, sem: asyncio.Semaphore,
             return {
                 "city": city,
                 "region": addr.get("state"),
-                "country": addr.get("country"),
+                "country": addr.get("country_code", "").upper() or addr.get("country"),
                 "latitude": round(float(result.latitude), 6),
                 "longitude": round(float(result.longitude), 6),
             }
         except (GeocoderTimedOut, GeocoderServiceError, Exception):
             return None
+
+
+async def geocode_with_fallback(
+    loc_str: str,
+    session: aiohttp.ClientSession,
+    owm_sem: asyncio.Semaphore,
+    api_key: str,
+    nominatim_sem: asyncio.Semaphore,
+    geocoder: Nominatim,
+) -> dict | None:
+    """
+    Try geocoding the full string, then progressively shorter substrings
+    by dropping the leftmost comma-separated part each iteration.
+    As a last resort, strip geographic noise words and retry.
+    """
+    parts = [p.strip() for p in loc_str.split(",")]
+
+    # Try full string first, then drop leftmost part each iteration
+    for i in range(len(parts)):
+        candidate = ", ".join(parts[i:])
+        geo = await geocode_owm(candidate, session, owm_sem, api_key)
+        if geo is not None:
+            return geo
+        geo = await geocode_nominatim(candidate, nominatim_sem, geocoder)
+        if geo is not None:
+            return geo
+
+    # Last resort: strip noise words and retry the full string
+    cleaned = _strip_noise(loc_str)
+    if cleaned and cleaned != loc_str:
+        geo = await geocode_owm(cleaned, session, owm_sem, api_key)
+        if geo is not None:
+            return geo
+        geo = await geocode_nominatim(cleaned, nominatim_sem, geocoder)
+        if geo is not None:
+            return geo
+
+    return None
 
 
 # -------------------------
@@ -339,6 +477,7 @@ async def process_row(
     geocoder: Nominatim,
     nlp,
     api_key: str,
+    nlp_lg=None,
 ) -> dict:
     url = str(row.get("image_url") or "").strip()
     lightbox_id = row.get("lightbox_id")
@@ -363,13 +502,35 @@ async def process_row(
             return {**base_result, **meta, "location_source": "metadata"}
 
     # Step A2: extract from title and geocode
-    loc_str = extract_location_from_title(title, nlp)
-    if loc_str:
-        geo = await geocode_owm(loc_str, session, owm_sem, api_key)
-        if geo is None:
-            geo = await geocode_nominatim(loc_str, nominatim_sem, geocoder)
-        if geo:
-            return {**base_result, **geo, "location_source": "title"}
+    title_result = extract_location_from_title(title, nlp, nlp_lg)
+    if title_result:
+        loc_str, method = title_result
+
+        # Check if single-part location is a known country name
+        parts = [p.strip() for p in loc_str.split(",")]
+        country_code = is_country_name(parts[-1])
+
+        if len(parts) == 1 and country_code:
+            # Single-part country name (e.g., "Vietnam", "Hungary")
+            geo = await geocode_owm(loc_str, session, owm_sem, api_key)
+            if geo and geo.get("country") == country_code:
+                geo["city"] = None
+                geo["region"] = None
+            else:
+                geo = await geocode_nominatim(loc_str, nominatim_sem, geocoder)
+                if geo:
+                    geo["city"] = None
+                    geo["region"] = None
+                    geo["country"] = country_code
+            if geo:
+                return {**base_result, **geo, "location_source": "title_country"}
+        else:
+            # Normal multi-part or non-country location — use progressive fallback
+            geo = await geocode_with_fallback(
+                loc_str, session, owm_sem, api_key, nominatim_sem, geocoder,
+            )
+            if geo:
+                return {**base_result, **geo, "location_source": method}
 
     return base_result
 
@@ -379,8 +540,14 @@ async def process_row(
 # -------------------------
 
 async def run(input_path: Path, out_csv: Path, api_key: str):
-    print("Loading spaCy model...")
+    print("Loading spaCy models...")
     nlp = spacy.load("en_core_web_sm")
+    try:
+        nlp_lg = spacy.load("en_core_web_lg")
+        print("  en_core_web_lg loaded (fallback NER)")
+    except OSError:
+        nlp_lg = None
+        print("  en_core_web_lg not installed — skipping fallback NER")
 
     df = pd.read_csv(input_path)
 
@@ -431,7 +598,7 @@ async def run(input_path: Path, out_csv: Path, api_key: str):
 
             async def worker(row):
                 async with sem_global:
-                    res = await process_row(row, session, per_host, owm_sem, nominatim_sem, geocoder, nlp, api_key)
+                    res = await process_row(row, session, per_host, owm_sem, nominatim_sem, geocoder, nlp, api_key, nlp_lg)
                     buffer.append(res)
                     if len(buffer) >= BATCH_FLUSH:
                         writer.writerows(buffer)
