@@ -23,6 +23,11 @@ FILEPATH_CLOUDS_WITH_DATE = DATA_DIR / "cloud_gallery_with_date.csv"
 FILEPATH_CLOUDS_WITH_DATE_LOC = DATA_DIR / "cloud_gallery_with_date_loc.csv"
 FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER = DATA_DIR / "cloud_gallery_with_date_loc_weather.csv"
 FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TYPE = DATA_DIR / "cloud_gallery_full.csv"
+FILEPATH_NO_CLOUDS = DATA_DIR / "no_clouds.csv"
+
+# Combined dataset (cloud rows + no-cloud rows merged into one file)
+FILEPATH_FULL          = DATA_DIR / "cloud_gallery_full_combined.csv"
+FILEPATH_FULL_TESTSET  = DATA_DIR / "cloud_gallery_full_combined_testset.csv"
 
 FILEPATH_DATE = DATA_DIR / "clouds_date.csv"
 FILEPATH_LOCATION = DATA_DIR / "clouds_location.csv"
@@ -47,6 +52,8 @@ FILEPATH_LOCATION_TEST_V3 = DATA_DIR / "clouds_location_test_v3.csv"
 FILEPATH_WEATHER_TEST = DATA_DIR / "clouds_weather_test.csv"
 FILEPATH_WEATHER_TEST_V2 = DATA_DIR / "clouds_weather_test_v2.csv"
 FILEPATH_WEATHER_TEST_V3 = DATA_DIR / "clouds_weather_test_v3.csv"
+FILEPATH_WEATHER_TEST_V4 = DATA_DIR / "clouds_weather_test_v4.csv"
+FILEPATH_WEATHER_TEST_V5 = DATA_DIR / "clouds_weather_test_v5.csv"
 
 FILEPATH_JSON_CHECKPOINT2 = DATA_DIR / "cloud_gallery_checkpoint2.jsonl"
 FILEPATH_CSV_CHECKPOINT2 = DATA_DIR / "cloud_gallery_checkpoint2.csv"
