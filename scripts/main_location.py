@@ -1,18 +1,8 @@
-# import asyncio
-# import os
-
-# from verycloudy.config import FILEPATH_CLOUDS_WITH_DATE_TESTSET, FILEPATH_LOCATION_TEST
-# from location import run
-
-
-# api_key = os.environ.get("OWM_API_KEY", "")
-# asyncio.run(run(FILEPATH_CLOUDS_WITH_DATE_TESTSET, FILEPATH_LOCATION_TEST, api_key))
-
 from pathlib import Path
 import asyncio
 import os
 
-from verycloudy.config import FILEPATH_CLOUDS_WITH_DATE_TESTSET, FILEPATH_LOCATION_TEST_V3
+from verycloudy.config import FILEPATH_CLOUDS_WITH_DATE, FILEPATH_LOCATION
 from location import run
 
 
@@ -43,7 +33,7 @@ async def main():
             "- Create a .env with:  OWM_API_KEY=YOUR_KEY  (recommended, at project root), OR\n"
             "- Set OWM_API_KEY in your OS/IDE environment."
         )
-    await run(FILEPATH_CLOUDS_WITH_DATE_TESTSET, FILEPATH_LOCATION_TEST_V3, api_key)
+    await run(FILEPATH_CLOUDS_WITH_DATE, FILEPATH_LOCATION, api_key)
 
 
 if __name__ == "__main__":
