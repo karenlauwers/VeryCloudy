@@ -319,11 +319,11 @@ async def run(input_path: Path, out_csv: Path):
             connector=connector,
             raise_for_status=False,
         ) as session:
-            sem = asyncio.Semaphore(OPEN_METEO_CONCURRENCY)
+            sem = asyncio.Semaphore(1)  # sequential: one request at a time
             buffer: list[dict] = []
             pbar = tqdm(total=len(rows), desc="Fetching weather", unit="row")
 
-            async def worker(row):
+            for row in rows:
                 res = await process_row(row, session, sem)
                 buffer.append(res)
                 if len(buffer) >= BATCH_FLUSH:
@@ -332,8 +332,6 @@ async def run(input_path: Path, out_csv: Path):
                     buffer.clear()
                 pbar.update(1)
 
-            tasks = [asyncio.create_task(worker(r)) for r in rows]
-            await asyncio.gather(*tasks)
             pbar.close()
 
             if buffer:

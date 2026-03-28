@@ -94,8 +94,8 @@ OWM_GEOCODING_CONCURRENCY = 10
 # Parameters for weather extraction
 # --------------------------------
 OPEN_METEO_URL = "https://archive-api.open-meteo.com/v1/archive"
-OPEN_METEO_CONCURRENCY = 3   # keep well under burst limit
-OPEN_METEO_DELAY = 0.5       # ~6 req/s max across all workers
+OPEN_METEO_CONCURRENCY = 1   # sequential: one request at a time
+OPEN_METEO_DELAY = 1.0       # 1 req/s — well under Open-Meteo limits
 
 FILENAME_DATETIME_PATTERNS = [
     # 1) Start-of-name 14 digits: YYYYMMDDHHMMSS

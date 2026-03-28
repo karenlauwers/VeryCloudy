@@ -7,12 +7,12 @@ Usage:
 
 import asyncio
 
-from verycloudy.config import FILEPATH_CLOUDS_WITH_DATE_LOCATION_TESTSET, FILEPATH_WEATHER_TEST_V5
+from verycloudy.config import FILEPATH_CLOUDS_WITH_DATE_LOC, FILEPATH_WEATHER
 from weather import run
 
 
 async def main():
-    await run(FILEPATH_CLOUDS_WITH_DATE_LOCATION_TESTSET, FILEPATH_WEATHER_TEST_V5)
+    await run(FILEPATH_CLOUDS_WITH_DATE_LOC, FILEPATH_WEATHER)
 
 
 if __name__ == "__main__":
