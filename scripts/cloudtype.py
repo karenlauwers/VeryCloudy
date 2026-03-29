@@ -145,6 +145,7 @@ def run(input_path: Path, out_csv: Path):
     )
 
     out_df = pd.concat([df, results], axis=1)
+    out_df["is_cloudy"] = True
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     out_df.to_csv(out_csv, index=False)
 
