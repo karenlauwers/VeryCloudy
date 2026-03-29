@@ -74,6 +74,8 @@ OUTPUT_FIELDS = [
     # cloud classification (empty = negative label)
     "cloud_type1", "cloud_type2", "cloud_type3",
     "subtype1", "subtype2",
+    # class indicator
+    "is_cloudy",
 ]
 
 
@@ -222,6 +224,7 @@ def build_row(loc: dict, weather: dict, counter: int) -> dict:
                   "weather_code", "rain_1h", "snow_1h", "uvi"):
         row[field] = weather.get(field)
     # cloud_type1-3, subtype1-2 stay None → negative label
+    row["is_cloudy"] = False
     return row
 
 
