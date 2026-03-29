@@ -13,13 +13,13 @@ OLIVE       = '#6B7A3A'   # olive green             → altostratus
 TERRACOTTA  = '#B8714A'   # warm terracotta orange  → altocumulus
 LAVENDER    = '#8B7BAD'   # soft violet             → cirrus
 CADET       = '#4F8C8C'   # deep teal               → cirrostratus
-SIENNA      = '#9C6B3C'   # warm brown              → cirrocumulus
-FERN        = '#4E7C59'   # forest green            → nimbostratus
+CORAL       = '#C8605A'   # warm coral-red          → cirrocumulus
+INDIGO      = '#5C6BC0'   # slate indigo            → nimbostratus
 NO_CLOUD    = '#A8A8A8'   # neutral gray            → no cloud (negative class)
 
 PALETTE = [
     SAGE, GOLDENROD, DUSTY_ROSE, SLATE_BLUE, OLIVE,
-    TERRACOTTA, LAVENDER, CADET, SIENNA, FERN, NO_CLOUD,
+    TERRACOTTA, LAVENDER, CADET, CORAL, INDIGO, NO_CLOUD,
 ]
 
 # Mapping cloud type → color (for consistent coloring across all charts)
@@ -32,8 +32,8 @@ CLOUD_TYPE_COLORS = {
     "altocumulus":   TERRACOTTA,
     "cirrus":        LAVENDER,
     "cirrostratus":  CADET,
-    "cirrocumulus":  SIENNA,
-    "nimbostratus":  FERN,
+    "cirrocumulus":  CORAL,
+    "nimbostratus":  INDIGO,
     "no cloud":      NO_CLOUD,
 }
 

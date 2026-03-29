@@ -47,6 +47,12 @@ FILEPATH_WEATHER_TEST = DATA_DIR / "clouds_weather_test.csv"
 FILEPATH_DATE_TEST = DATA_DIR / "clouds_date_test.csv"
 FILEPATH_NO_CLOUDS_TEST = DATA_DIR / "no_clouds_test.csv"
 
+FILEPATH_WEATHER_TESTXL = DATA_DIR / "clouds_weather_testxl.csv"
+FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TESTXL = DATA_DIR / "cloud_gallery_with_date_loc_weather_testxl.csv"
+FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TYPE_TESTXL = DATA_DIR / "cloud_gallery_all_info_testxl.csv"
+FILEPATH_CLOUDS_ALL_INFO_CLEAN_TESTXL = DATA_DIR / "cloud_gallery_all_info_clean_testxl.csv"
+FILEPATH_FULL_TESTXL  = DATA_DIR / "cloud_gallery_full_testxl.csv" # including 100 no cloud rows
+
 FILEPATH_CLOUDS_JSON = DATA_DIR / "cloud_gallery.jsonl"
 FILEPATH_JSON_CHECKPOINT = DATA_DIR / "cloud_gallery_checkpoint.jsonl"
 FILEPATH_CSV_CHECKPOINT = DATA_DIR / "cloud_gallery_checkpoint.csv"
@@ -94,8 +100,9 @@ OWM_GEOCODING_CONCURRENCY = 10
 # Parameters for weather extraction
 # --------------------------------
 OPEN_METEO_URL = "https://archive-api.open-meteo.com/v1/archive"
-OPEN_METEO_CONCURRENCY = 1   # sequential: one request at a time
-OPEN_METEO_DELAY = 1.0       # 1 req/s — well under Open-Meteo limits
+OPEN_METEO_CONCURRENCY = 1      # sequential: one request at a time
+OPEN_METEO_DELAY = 1.0          # ~8 req/min = 500 req/hour — safely under rolling window
+OPEN_METEO_PAUSE_EVERY = 4000   # stop after this many new rows per run; switch IP then restart
 
 FILENAME_DATETIME_PATTERNS = [
     # 1) Start-of-name 14 digits: YYYYMMDDHHMMSS
