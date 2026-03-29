@@ -11,7 +11,7 @@ batch CSV flush, resume support).
 
 from verycloudy.config import (
     BATCH_FLUSH,
-    OPEN_METEO_URL, OPEN_METEO_CONCURRENCY, OPEN_METEO_DELAY,
+    OPEN_METEO_URL, OPEN_METEO_CONCURRENCY, OPEN_METEO_DELAY, OPEN_METEO_PAUSE_EVERY
 )
 
 import asyncio
@@ -146,25 +146,27 @@ async def fetch_weather(
     }
     async with sem:
         try:
-            for attempt in range(3):
+            body = None
+            for attempt in range(2):         # try at most twice
                 async with session.get(OPEN_METEO_URL, params=params) as resp:
                     if resp.status == 429:
-                        print("  [RATE LIMIT] waiting 60s …")
-                        await asyncio.sleep(60)
-                        continue
+                        wait = 300 if attempt == 0 else 600   # 5 min, then 10 min
+                        print(f"  [RATE LIMIT] waiting {wait}s …")
+                        await asyncio.sleep(wait)
+                        continue             # one retry after the wait
                     if resp.status != 200:
                         text = await resp.text()
                         print(f"  [ERROR] {resp.status}: {text[:120]}")
                         return None
                     body = await resp.json()
-                    break
-            else:
-                return None  # all retries exhausted
+                    break                    # success
+            if body is None:
+                return None                 # both attempts hit 429
         except Exception as exc:
             print(f"  [ERROR] weather fetch failed: {exc}")
             return None
         finally:
-            await asyncio.sleep(OPEN_METEO_DELAY)
+            await asyncio.sleep(OPEN_METEO_DELAY)   # normal per-row delay, runs once
 
     hourly = body.get("hourly", {})
     times = hourly.get("time", [])
@@ -321,11 +323,25 @@ async def run(input_path: Path, out_csv: Path):
         ) as session:
             sem = asyncio.Semaphore(1)  # sequential: one request at a time
             buffer: list[dict] = []
+            session_count = 0
             pbar = tqdm(total=len(rows), desc="Fetching weather", unit="row")
 
             for row in rows:
+                if OPEN_METEO_PAUSE_EVERY and session_count >= OPEN_METEO_PAUSE_EVERY:
+                    if buffer:
+                        writer.writerows(buffer)
+                        f.flush()
+                        buffer.clear()
+                    pbar.close()
+                    print(f"\n*** Session limit of {OPEN_METEO_PAUSE_EVERY} rows reached. ***")
+                    print("Switch to a new network/IP, then restart:")
+                    print("    python scripts/main_weather.py")
+                    print("Resume is automatic — already-fetched rows will be skipped.\n")
+                    return
+
                 res = await process_row(row, session, sem)
                 buffer.append(res)
+                session_count += 1
                 if len(buffer) >= BATCH_FLUSH:
                     writer.writerows(buffer)
                     f.flush()
