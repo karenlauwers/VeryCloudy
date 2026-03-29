@@ -49,4 +49,7 @@ dependencies:
   - ipykernel=6.29.5
   - aiohttp=3.9.1
   - exifread=3.0.0
-  - python-dotenv>=1.0.0
+  - python-dotenv>=1.0.0  - streamlit
+  - streamlit-folium
+  - folium
+  - qrcode[pil]

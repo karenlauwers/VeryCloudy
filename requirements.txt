@@ -33,3 +33,7 @@ aiohttp
 exifread
 python-dotenv
 timezonefinder
+streamlit
+streamlit-folium
+folium
+qrcode[pil]
