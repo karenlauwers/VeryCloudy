@@ -99,6 +99,8 @@ def _to_country_name(val) -> str:
 def load_data() -> pd.DataFrame:
     df = pd.read_csv(FILEPATH_FULL_TESTXL, low_memory=False)
     df["year"] = pd.to_datetime(df["date_taken"], errors="coerce").dt.year
+    # Drop rows with clearly bad years (CAS founded 2004 — anything earlier is a faulty EXIF date)
+    df = df[df["year"].isna() | (df["year"] >= 2004)]
     if "is_cloudy" in df.columns:
         df["is_cloudy"] = df["is_cloudy"].fillna(True).astype(bool)
         mask_no_cloud = ~df["is_cloudy"] & df["cloud_type1"].isna()
@@ -115,7 +117,7 @@ def load_data() -> pd.DataFrame:
 
 df_all = load_data()
 
-CLOUD_TYPES = sorted(df_all["cloud_type1"].dropna().unique().tolist())
+CLOUD_TYPES = sorted([t for t in df_all["cloud_type1"].dropna().unique() if t != "unclassified"])
 COUNTRIES   = sorted(df_all["country_name"].dropna().replace("", pd.NA).dropna().unique().tolist())
 YEAR_MIN    = int(df_all["year"].min()) if df_all["year"].notna().any() else 2005
 YEAR_MAX    = int(df_all["year"].max()) if df_all["year"].notna().any() else 2026
@@ -539,13 +541,35 @@ with tab3:
         st.subheader("Cloud filter")
         feel_filter_mode = st.radio("Filter by", ["Main cloud type", "Subtype"], horizontal=True, key="feel_fmode")
         if feel_filter_mode == "Main cloud type":
-            _ct_opts = ["All"] + sorted(df_all["cloud_type1"].dropna().unique().tolist())
-            feel_cloud = st.selectbox("Cloud type", _ct_opts, key="feel_ct")
-            feel_subtype = None
+            # Exclude "unclassified" from the selectable options (rows are kept in data)
+            _ct_opts = sorted([
+                t for t in df_all["cloud_type1"].dropna().unique()
+                if t != "unclassified"
+            ])
+            feel_cloud_all = st.checkbox("All main types", value=True, key="feel_ct_all")
+            if feel_cloud_all:
+                feel_cloud = "All"
+                feel_subtype = None
+                st.caption("Showing all main cloud types. To compare up to 3 types side by side, uncheck 'All main types' and select your types.")
+            else:
+                feel_cloud_sel = st.multiselect(
+                    "Select up to 3 cloud types", _ct_opts, max_selections=3, key="feel_ct"
+                )
+                feel_cloud = feel_cloud_sel if feel_cloud_sel else "All"
+                feel_subtype = None
         else:
-            _st_opts = ["All"] + sorted(df_all["subtype1"].dropna().unique().tolist())
-            feel_subtype = st.selectbox("Subtype", _st_opts, key="feel_st")
-            feel_cloud = None
+            _st_opts = sorted(df_all["subtype1"].dropna().unique().tolist())
+            feel_st_all = st.checkbox("All subtypes", value=True, key="feel_st_all")
+            if feel_st_all:
+                feel_subtype = "All"
+                feel_cloud = None
+                st.caption("Showing all subtypes. To compare up to 3 subtypes side by side, uncheck 'All subtypes' and select your subtypes.")
+            else:
+                feel_st_sel = st.multiselect(
+                    "Select up to 3 subtypes", _st_opts, max_selections=3, key="feel_st"
+                )
+                feel_subtype = feel_st_sel if feel_st_sel else "All"
+                feel_cloud = None
 
         st.markdown("---")
         st.subheader("Chart & parameters")
@@ -577,9 +601,11 @@ with tab3:
         feel_lat, feel_lon, feel_radius,
     )
     if feel_cloud and feel_cloud != "All":
-        df_feel = df_feel[df_feel["cloud_type1"] == feel_cloud]
+        df_feel = df_feel[df_feel["cloud_type1"].isin(feel_cloud)]
+    elif feel_cloud == "All":
+        df_feel = df_feel[df_feel["cloud_type1"] != "unclassified"]
     if feel_subtype and feel_subtype != "All":
-        df_feel = df_feel[df_feel["subtype1"] == feel_subtype]
+        df_feel = df_feel[df_feel["subtype1"].isin(feel_subtype)]
 
     # Compute temp−dewpoint diff
     if "temp" in df_feel.columns and "dew_point" in df_feel.columns:
