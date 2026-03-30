@@ -11,7 +11,7 @@ Adjust TARGET_ROWS in no_clouds.py after inspecting per-class distribution in Pa
 
 import asyncio
 
-from verycloudy.config import FILEPATH_CLOUDS_ALL_INFO_CLEAN_TESTSET, FILEPATH_NO_CLOUDS_TEST
+from verycloudy.config import FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TYPE, FILEPATH_NO_CLOUDS
 from no_clouds import run
 
-asyncio.run(run(FILEPATH_CLOUDS_ALL_INFO_CLEAN_TESTSET, FILEPATH_NO_CLOUDS_TEST))
+asyncio.run(run(FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TYPE, FILEPATH_NO_CLOUDS))

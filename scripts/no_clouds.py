@@ -33,8 +33,8 @@ from verycloudy.config import (
 # Configuration
 # -------------------------
 
-TARGET_ROWS = 100   # adjust after seeing per-class distribution in Part 3
-MAX_PER_LOCATION = 10  # max clear-sky rows taken per location (ensures geographic spread)
+TARGET_ROWS = 2500   # adjust after seeing per-class distribution in Part 3
+MAX_PER_LOCATION = 3  # max clear-sky rows taken per location (ensures geographic spread)
 
 # Date range to draw random months from (matches the CAS gallery dataset)
 YEAR_MIN = 2005
@@ -56,28 +56,30 @@ OPEN_METEO_VARS = (
     "visibility,rain,snowfall,weather_code,uv_index"
 )
 
-# Output columns — must match cloud_gallery_full.csv schema exactly
-OUTPUT_FIELDS = [
-    # identity / image (empty for synthetic rows)
-    "lightbox_id", "image_url", "date_iso", "date_raw",
-    "author_name", "author_profile", "title", "tags",
-    "status", "source_field", "fallback_used", "error",
-    # date/time
-    "date_taken", "time_taken", "date_taken_utc", "time_taken_utc", "dt_unix",
-    # location
-    "city", "region", "country", "latitude", "longitude", "location_source",
-    # weather
-    "temp", "feels_like", "pressure", "humidity", "dew_point",
-    "clouds", "clouds_low", "clouds_mid", "clouds_high",
-    "wind_speed", "wind_deg", "wind_gust", "visibility",
-    "weather_code", "rain_1h", "snow_1h", "uvi",
-    # cloud classification (empty = negative label)
-    "cloud_type1", "cloud_type2", "cloud_type3",
-    "subtype1", "subtype2",
-    # class indicator
-    "is_cloudy",
-]
+# Output columns — must match cleaned csv cloud_gallery_all_info_clean schema exactly
 
+OUTPUT_FIELDS = [
+    # identity (created for synthetic rows)
+    'lightbox_id', 
+    # image feateures (emppty for synthetic rows)
+    'image_url', 'date_iso', 'date_raw', 'author_name',
+       'author_profile', 'title', 'tags', 'status',
+    # Image datetime adds throughout datetime process    
+    'date_taken', 'time_taken',
+       'date_taken_utc_xmp', 'time_taken_utc_xmp', 'datetime_source',
+       'fallback_dt_used', 'datetime_capture', 
+    # Location adds throughout location process
+    'city', 'region', 'country', 'latitude', 'longitude', 'location_source', 
+    # Datetime fixes throughout preparation for weather-info pick up process
+    'dt_unix', 'date_taken_utc', 'time_taken_utc', 
+    # Weather parameters gathered in weather process
+    'temp', 'feels_like', 'pressure', 'humidity', 'dew_point', 'clouds', 'clouds_low',
+       'clouds_mid', 'clouds_high', 'wind_speed', 'wind_deg', 'wind_gust',
+       'visibility', 'weather_code', 'rain_1h', 'snow_1h', 'uvi',
+    # Cloud types set in cloudtype process
+       'cloud_type1', 'cloud_type2', 'cloud_type3', 'subtype1', 'subtype2', 'cloud_type_fix', 
+    # Parameter to know if the information is about a cloud or a no-cloud (synthetic) row
+    'is_cloudy']
 
 # -------------------------
 # Open-Meteo helpers
@@ -244,7 +246,7 @@ async def run(locations_csv: Path, out_csv: Path, target: int = TARGET_ROWS):
     loc_cols = ["latitude", "longitude", "city", "region", "country", "location_source"]
     locs = (
         df[loc_cols]
-        .dropna(subset=["latitude", "longitude"])
+        .dropna(subset=["latitude", "longitude", "city", "country"])
         .drop_duplicates(subset=["latitude", "longitude"])
         .to_dict("records")
     )
