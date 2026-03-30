@@ -32,6 +32,24 @@ FILEPATH_DATE = DATA_DIR / "clouds_date.csv"
 FILEPATH_LOCATION = DATA_DIR / "clouds_location.csv"
 FILEPATH_WEATHER = DATA_DIR / "clouds_weather.csv"
 
+FILEPATH_CLOUDS_CSV_DEMO = DATA_DIR / "cloud_gallery_demo.csv"
+FILEPATH_CLOUDS_WITH_DATE_DEMO = DATA_DIR / "cloud_gallery_with_date_demo.csv"
+FILEPATH_CLOUDS_WITH_DATE_LOC_DEMO = DATA_DIR / "cloud_gallery_with_date_loc_demo.csv"
+FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_DEMO = DATA_DIR / "cloud_gallery_with_date_loc_weather_demo.csv"
+FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TYPE_DEMO = DATA_DIR / "cloud_gallery_all_info_demo.csv"
+FILEPATH_CLOUDS_ALL_INFO_CLEAN_DEMO = DATA_DIR / "cloud_gallery_all_info_clean_demo.csv"
+FILEPATH_NO_CLOUDS_DEMO = DATA_DIR / "no_clouds_demo.csv"
+
+FILEPATH_FULL_DEMO = DATA_DIR / "cloud_gallery_full_demo.csv" # including no cloud rows
+
+FILEPATH_DATE_DEMO = DATA_DIR / "clouds_date_demo.csv"
+FILEPATH_LOCATION_DEMO = DATA_DIR / "clouds_location_demo.csv"
+FILEPATH_WEATHER_DEMO = DATA_DIR / "clouds_weather_demo.csv"
+
+FILEPATH_CLOUDS_JSON_DEMO = DATA_DIR / "cloud_gallery_demo.jsonl"
+FILEPATH_JSON_CHECKPOINT_DEMO = DATA_DIR / "cloud_gallery_checkpoint_demo.jsonl"
+FILEPATH_CSV_CHECKPOINT_DEMO = DATA_DIR / "cloud_gallery_checkpoint_demo.csv"
+
 FILEPATH_DATE_APPEND_CSV = DATA_DIR / "clouds_date_append.csv"
 
 FILEPATH_CLOUDS_TEST = DATA_DIR / "cloud_gallery_testset.csv"
@@ -47,11 +65,18 @@ FILEPATH_WEATHER_TEST = DATA_DIR / "clouds_weather_test.csv"
 FILEPATH_DATE_TEST = DATA_DIR / "clouds_date_test.csv"
 FILEPATH_NO_CLOUDS_TEST = DATA_DIR / "no_clouds_test.csv"
 
-FILEPATH_WEATHER_TESTXL = DATA_DIR / "clouds_weather_testxl.csv"
-FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TESTXL = DATA_DIR / "cloud_gallery_with_date_loc_weather_testxl.csv"
+FILEPATH_CLOUDS_TESTXL = DATA_DIR / "cloud_gallery_testxl.csv"
+FILEPATH_CLOUDS_WITH_DATE_TESTXL = DATA_DIR / "cloud_gallery_with_date_testxl.csv"
+FILEPATH_CLOUDS_WITH_DATE_LOCATION_TESTXL = DATA_DIR / "cloud_gallery_with_date_location_testxl.csv"
+FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TESTXK = DATA_DIR / "cloud_gallery_with_date_loc_weather_testxl.csv"
 FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TYPE_TESTXL = DATA_DIR / "cloud_gallery_all_info_testxl.csv"
 FILEPATH_CLOUDS_ALL_INFO_CLEAN_TESTXL = DATA_DIR / "cloud_gallery_all_info_clean_testxl.csv"
-FILEPATH_FULL_TESTXL  = DATA_DIR / "cloud_gallery_full_testxl.csv" # including 100 no cloud rows
+FILEPATH_FULL_TESTXL  = DATA_DIR / "cloud_gallery_full_testxl.csv" # including no cloud rows
+
+FILEPATH_LOCATION_TESTXL = DATA_DIR / "clouds_location_testxl.csv"
+FILEPATH_WEATHER_TESTXL = DATA_DIR / "clouds_weather_testxk.csv"
+FILEPATH_DATE_TESTXL = DATA_DIR / "clouds_date_testxl.csv"
+FILEPATH_NO_CLOUDS_TESTXL = DATA_DIR / "no_clouds_testxl.csv"
 
 FILEPATH_CLOUDS_JSON = DATA_DIR / "cloud_gallery.jsonl"
 FILEPATH_JSON_CHECKPOINT = DATA_DIR / "cloud_gallery_checkpoint.jsonl"
@@ -102,7 +127,7 @@ OWM_GEOCODING_CONCURRENCY = 10
 OPEN_METEO_URL = "https://archive-api.open-meteo.com/v1/archive"
 OPEN_METEO_CONCURRENCY = 1      # sequential: one request at a time
 OPEN_METEO_DELAY = 1.0          # ~8 req/min = 500 req/hour — safely under rolling window
-OPEN_METEO_PAUSE_EVERY = 4000   # stop after this many new rows per run; switch IP then restart
+OPEN_METEO_PAUSE_EVERY = 4800   # stop after this many new rows per run; switch IP then restart
 
 FILENAME_DATETIME_PATTERNS = [
     # 1) Start-of-name 14 digits: YYYYMMDDHHMMSS
