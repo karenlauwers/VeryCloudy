@@ -54,7 +54,7 @@ def summary_table(df: pd.DataFrame) -> pd.DataFrame:
     """
     key_cols = [
         "latitude", "longitude", "date_taken", "time_taken",
-        "temp", "clouds", "cloud_type1",
+        "temp", "clouds", "cloud_type1", "subtype1"
     ]
     rows = []
     for col in key_cols:
@@ -109,7 +109,7 @@ def completeness_bar(df: pd.DataFrame) -> plt.Figure:
     ax.set_title("Dataset completeness")
     for bar, pct in zip(bars, pcts):
         ax.text(pct + 1, bar.get_y() + bar.get_height() / 2,
-                f"{pct:.0f}%", va="center", fontsize=12)
+                f"{pct:.2f}%", va="center", fontsize=12)
     fig.tight_layout()
     return fig
 
