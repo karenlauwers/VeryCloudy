@@ -30,6 +30,8 @@ COLUMN_RENAMES = {
     "source_field":     "datetime_source",
     "fallback_used":    "fallback_dt_used",
     "error":            "datetime_capture",
+    "date_taken_utc_y": "date_taken_utc", 
+    "time_taken_utc_y": "time_taken_utc"
 }
 
 
