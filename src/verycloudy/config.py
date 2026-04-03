@@ -16,6 +16,7 @@ IMAGE_DIR = PROJECT_ROOT / "images"
 OUTPUT_DIR = PROJECT_ROOT / "output"
 NOTEBOOK_DIR = PROJECT_ROOT / "notebooks"
 SCRIPT_DIR = PROJECT_ROOT / "scripts"
+DATASET_DIR = PROJECT_ROOT / "dataset"
 
 # File paths 
 FILEPATH_CLOUDS_CSV = DATA_DIR / "cloud_gallery.csv"
@@ -27,6 +28,7 @@ FILEPATH_CLOUDS_ALL_INFO_CLEAN = DATA_DIR / "cloud_gallery_all_info_clean.csv"
 FILEPATH_NO_CLOUDS = DATA_DIR / "no_clouds.csv"
 
 FILEPATH_FULL = DATA_DIR / "cloud_gallery_full.csv" # including no cloud rows
+FILEPATH_DATASET_TO_SHARE = DATASET_DIR / "cloud_gallery_full.csv" # full dataset to share 
 
 FILEPATH_DATE = DATA_DIR / "clouds_date.csv"
 FILEPATH_LOCATION = DATA_DIR / "clouds_location.csv"
@@ -68,7 +70,7 @@ FILEPATH_NO_CLOUDS_TEST = DATA_DIR / "no_clouds_test.csv"
 FILEPATH_CLOUDS_TESTXL = DATA_DIR / "cloud_gallery_testxl.csv"
 FILEPATH_CLOUDS_WITH_DATE_TESTXL = DATA_DIR / "cloud_gallery_with_date_testxl.csv"
 FILEPATH_CLOUDS_WITH_DATE_LOCATION_TESTXL = DATA_DIR / "cloud_gallery_with_date_location_testxl.csv"
-FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TESTXK = DATA_DIR / "cloud_gallery_with_date_loc_weather_testxl.csv"
+FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TESTXL = DATA_DIR / "cloud_gallery_with_date_loc_weather_testxl.csv"
 FILEPATH_CLOUDS_WITH_DATE_LOC_WEATHER_TYPE_TESTXL = DATA_DIR / "cloud_gallery_all_info_testxl.csv"
 FILEPATH_CLOUDS_ALL_INFO_CLEAN_TESTXL = DATA_DIR / "cloud_gallery_all_info_clean_testxl.csv"
 FILEPATH_FULL_TESTXL  = DATA_DIR / "cloud_gallery_full_testxl.csv" # including no cloud rows

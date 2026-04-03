@@ -15,7 +15,8 @@ LAVENDER    = '#8B7BAD'   # soft violet             → cirrus
 CADET       = '#4F8C8C'   # deep teal               → cirrostratus
 CORAL       = '#C8605A'   # warm coral-red          → cirrocumulus
 INDIGO      = '#5C6BC0'   # slate indigo            → nimbostratus
-NO_CLOUD    = '#A8A8A8'   # neutral gray            → no cloud (negative class)
+NO_CLOUD      = '#A8A8A8'   # neutral gray            → no cloud (negative class)
+UNCLASSIFIED  = '#C4B8A8'   # warm light gray         → unclassified (no type parsed)
 
 PALETTE = [
     SAGE, GOLDENROD, DUSTY_ROSE, SLATE_BLUE, OLIVE,
@@ -35,6 +36,7 @@ CLOUD_TYPE_COLORS = {
     "cirrocumulus":  CORAL,
     "nimbostratus":  INDIGO,
     "no cloud":      NO_CLOUD,
+    "unclassified":  UNCLASSIFIED,
 }
 
 # --- Statistical reference line colors ---
