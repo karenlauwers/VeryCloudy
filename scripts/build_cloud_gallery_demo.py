@@ -155,11 +155,10 @@ async def main() -> None:
     # ── STEP 4: Extract location ──────────────────────────────────────────────
     _step(4, "Extracting location from image metadata / NER + geocoding")
     api_key = _load_owm_api_key()
-    if not api_key:
-        raise RuntimeError(
-            "OWM_API_KEY is missing.\n"
-            "Add it to a .env file at the project root:  OWM_API_KEY=YOUR_KEY"
-        )
+    if api_key:
+        print("  OWM_API_KEY found — using OWM Geocoding API with Nominatim as fallback.")
+    else:
+        print("  OWM_API_KEY not set — geocoding will use Nominatim only (slower, 1 req/sec).")
     from location import run as location_run
     await location_run(FILEPATH_CLOUDS_WITH_DATE_DEMO, FILEPATH_LOCATION_DEMO, api_key)
 

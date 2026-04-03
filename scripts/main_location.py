@@ -27,12 +27,10 @@ def load_api_key() -> str:
 
 async def main():
     api_key = load_api_key()
-    if not api_key:
-        raise RuntimeError(
-            "OWM_API_KEY is missing.\n"
-            "- Create a .env with:  OWM_API_KEY=YOUR_KEY  (recommended, at project root), OR\n"
-            "- Set OWM_API_KEY in your OS/IDE environment."
-        )
+    if api_key:
+        print("OWM_API_KEY found — using OWM Geocoding API with Nominatim as fallback.")
+    else:
+        print("OWM_API_KEY not set — geocoding will use Nominatim only (slower, 1 req/sec).")
     await run(FILEPATH_CLOUDS_WITH_DATE, FILEPATH_LOCATION, api_key)
 
 
