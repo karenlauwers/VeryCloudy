@@ -190,7 +190,9 @@ def data_quality_report(df: pd.DataFrame) -> pd.DataFrame:
     - Rows where is_cloudy=True but cloud cover=0 (weather API anomaly)
       and how many of those used fallback time 11:00
     - The single 1980 outlier row
-    - Quality rows (EXIF / XMP / FILENAME datetime source)
+    - Datetime source breakdown: EXIF / XMP / FILENAME vs fallback
+      (no-cloud rows are excluded from this count — they have no photo datetime)
+    - Quality rows (EXIF / XMP / FILENAME + all no-cloud rows)
     """
     n = len(df)
 
@@ -214,21 +216,47 @@ def data_quality_report(df: pd.DataFrame) -> pd.DataFrame:
     years  = pd.to_datetime(df["date_taken"], errors="coerce").dt.year
     n_1980 = int(years.eq(1980).sum())
 
+    # Datetime source breakdown — cloud photos only (no-cloud rows have no photo datetime)
+    is_cloud_photo = pd.Series(True, index=df.index)
+    if "is_cloudy" in df.columns:
+        is_cloud_photo = df["is_cloudy"].ne(False)
+    n_cloud_photos = int(is_cloud_photo.sum())
+
+    if "datetime_source" in df.columns:
+        src = df.loc[is_cloud_photo, "datetime_source"].str.upper()
+        n_exif     = int(src.str.contains("EXIF",     na=False).sum())
+        n_xmp      = int(src.str.contains("XMP",      na=False).sum())
+        n_filename = int(src.str.contains("FILENAME", na=False).sum())
+        n_fallback = int(
+            df["fallback_dt_used"].eq(True).sum()
+            if "fallback_dt_used" in df.columns
+            else src.isna().sum()
+        )
+    else:
+        n_exif = n_xmp = n_filename = n_fallback = "n/a"
+
     n_quality = len(make_quality_df(df))
 
     rows = [
         {"check": "Total rows",                                 "count": n,                    "note": ""},
+        {"check": "  → cloud photo rows (is_cloudy ≠ False)",  "count": n_cloud_photos,        "note": ""},
+        {"check": "  → no-cloud rows (is_cloudy = False)",     "count": n - n_cloud_photos,    "note": "no photo datetime — always included in quality_df"},
         {"check": "Rows without weather info",                  "count": n_no_weather,          "note": f"{100*n_no_weather/n:.1f}% of all rows"},
         {"check": "  → also no location",                       "count": n_no_weather_no_loc,   "note": "weather lookup impossible"},
-        {"check": "  → have location but no weather",           "count": n_no_weather_with_loc, "note": "2 rows; likely too old for archive"},
+        {"check": "  → have location but no weather",           "count": n_no_weather_with_loc, "note": "likely too old for archive"},
         {"check": "is_cloudy=True AND cloud cover=0",           "count": n_bad_cover,           "note": "weather API anomaly; excluded from weather charts"},
         {"check": "  → used fallback time 11:00",               "count": n_bad_fallback,        "note": "time unknown → wrong hour sent to API"},
         {"check": "Rows with date year = 1980",                 "count": n_1980,                "note": "outlier; excluded from all charts"},
-        {"check": "Quality rows (EXIF / XMP / FILENAME source)","count": n_quality,             "note": f"{100*n_quality/n:.1f}% — use these for weather analysis"},
+        {"check": "── Datetime source (cloud photos only) ──",  "count": "",                   "note": ""},
+        {"check": "  → EXIF",                                   "count": n_exif,                "note": "most reliable"},
+        {"check": "  → XMP",                                    "count": n_xmp,                 "note": "reliable"},
+        {"check": "  → FILENAME",                               "count": n_filename,             "note": "reliable"},
+        {"check": "  → fallback time 11:00",                    "count": n_fallback,             "note": "capture time unknown"},
+        {"check": "Quality rows (EXIF/XMP/FILENAME + no-cloud)","count": n_quality,             "note": f"{100*n_quality/n:.1f}% — use these for weather analysis"},
     ]
 
     result = pd.DataFrame(rows)
-    print(result.to_string(index=False))
+    # print(result.to_string(index=False))
     return result
 
 
