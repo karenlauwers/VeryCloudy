@@ -29,8 +29,9 @@ from streamlit_folium import st_folium
 # Make src/ importable
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from verycloudy.config import FILEPATH_FULL_TESTXL
+from verycloudy.config import FILEPATH_DATASET_TO_SHARE
 from verycloudy.styling import CLOUD_TYPE_COLORS
+from verycloudy.analysis import data_quality_report, make_quality_df
 
 # ──────────────────────────────────────────────────────────
 # Page config
@@ -97,7 +98,7 @@ def _to_country_name(val) -> str:
 
 @st.cache_data
 def load_data() -> pd.DataFrame:
-    df = pd.read_csv(FILEPATH_FULL_TESTXL, low_memory=False)
+    df = pd.read_csv(FILEPATH_DATASET_TO_SHARE, low_memory=False)
     df["year"] = pd.to_datetime(df["date_taken"], errors="coerce").dt.year
     # Drop rows with clearly bad years (CAS founded 2004 — anything earlier is a faulty EXIF date)
     df = df[df["year"].isna() | (df["year"] >= 2004)]
@@ -280,9 +281,150 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-tab1, tab2, tab3, tab4 = st.tabs([
-    "Explore", "Look", "Feel", "Learn"
+tab_build, tab1, tab2, tab3, tab4 = st.tabs([
+    "Build", "Explore", "Look", "Feel", "Learn"
 ])
+
+
+# ══════════════════════════════════════════════════════════
+# TAB BUILD — How the dataset was built
+# ══════════════════════════════════════════════════════════
+with tab_build:
+    st.header("How the dataset was built")
+    st.markdown(
+        "This dataset was assembled from scratch as part of a Data Science thesis. "
+        "The goal: collect cloud photos, enrich them with location and weather data, "
+        "and build a dataset that can train a model to predict cloud types 3 days in advance. "
+        "Below is the full pipeline."
+    )
+
+    st.markdown("---")
+
+    st.subheader("Why not Selenium?")
+    st.markdown(
+        "The first scraping attempt used **Selenium** to automate a real browser session on the "
+        "[Cloud Appreciation Society](https://cloudappreciationsociety.org) gallery. "
+        "It worked for small tests but turned out too brittle for a full-scale collection: "
+        "any layout change, slow page load, or session timeout broke the run. "
+        "A direct **API approach** (HTTP requests to the gallery's JSON endpoint) proved far more stable "
+        "and was used for all serious data collection."
+    )
+
+    st.markdown("---")
+    st.subheader("Pipeline — 11 steps")
+
+    _steps = [
+        (
+            "Step 1 — Scrape the CAS gallery",
+            "scripts/scraping_by_api.py",
+            "cloud_gallery.csv",
+            "Send HTTP requests to the Cloud Appreciation Society gallery API, page by page. "
+            "Each photo yields a lightbox ID, title, author, image URL, tags, and a link to the full page. "
+            "The **lightbox_id** is the join key used throughout the entire pipeline.",
+        ),
+        (
+            "Step 2 — Extract date and time from EXIF metadata",
+            "scripts/date.py",
+            "clouds_date.csv",
+            "Fetch each image (or its first 256 KB via a Range request) and read EXIF/XMP metadata. "
+            "Sources tried in order: EXIF DateTimeOriginal → XMP date tags → date pattern in filename. "
+            "If none found, a fallback time of 11:00 is used and **fallback_dt_used** is flagged. "
+            "Only rows with a real datetime are considered quality data for weather analysis.",
+        ),
+        (
+            "Step 3 — Merge scrape + date",
+            "—",
+            "cloud_gallery_with_date.csv",
+            "Left-join the scrape file and the date file on **lightbox_id**. "
+            "All photo rows are kept; the date columns are added where available.",
+        ),
+        (
+            "Step 4 — Extract location",
+            "scripts/location.py",
+            "clouds_location.csv",
+            "Two-stage location extraction per photo. "
+            "**Stage A:** read GPS coordinates from EXIF/IPTC/XMP metadata embedded in the image. "
+            "**Stage B (fallback):** parse the photo title with regex patterns and spaCy NER to find a place name, "
+            "then geocode it via the OpenWeatherMap Geocoding API (if a key is available) or Nominatim.",
+        ),
+        (
+            "Step 5 — Merge with location",
+            "—",
+            "cloud_gallery_with_date_loc.csv",
+            "Left-join the previous file with the location output on **lightbox_id**. "
+            "Adds city, region, country, latitude and longitude.",
+        ),
+        (
+            "Step 6 — Fetch historical weather",
+            "scripts/weather.py",
+            "clouds_weather.csv",
+            "For each row that has coordinates and a date, query the **Open-Meteo** historical weather API. "
+            "Open-Meteo is free and covers hourly data back to 1940. "
+            "Returns temperature, humidity, pressure, dew point, wind, cloud cover levels, precipitation and weather code "
+            "for the exact hour and location of the photo.",
+        ),
+        (
+            "Step 7 — Merge with weather",
+            "—",
+            "cloud_gallery_with_date_loc_weather.csv",
+            "Left-join with the weather output on **lightbox_id**. "
+            "All weather columns are added; rows without coordinates or date simply have NaN weather values.",
+        ),
+        (
+            "Step 8 — Extract cloud types from tags",
+            "scripts/cloudtype.py",
+            "cloud_gallery_all_info.csv",
+            "Each CAS photo has a set of community-submitted tags. "
+            "A rule-based classifier maps these tags to the 10 WMO cloud genera (cumulus, cirrus, …) "
+            "and up to 30+ subtypes (cumulonimbus incus, cirrus fibratus, …). "
+            "Up to 3 cloud types and 2 subtypes are extracted per photo.",
+        ),
+        (
+            "Step 9 — Post-processing and cleanup",
+            "scripts/update.py",
+            "cloud_gallery_all_info_clean.csv",
+            "Column renames, country code normalisation, subtype fallback logic, "
+            "and a flag for rows where the cloud cover is 0 despite is_cloudy=True "
+            "(a known Open-Meteo API quirk for photos taken at the exact fallback time).",
+        ),
+        (
+            "Step 10 — Generate no-cloud rows",
+            "scripts/no_clouds.py",
+            "no_clouds.csv",
+            "The model needs a **negative class**: observations where the sky is clear. "
+            "Clear-sky weather data is sampled from Open-Meteo at real geographic locations "
+            "drawn from the cloud photo dataset, on dates where Open-Meteo reported 0 % cloud cover. "
+            "These synthetic rows get **is_cloudy = False** and no image URL.",
+        ),
+        (
+            "Step 11 — Concatenate into the final dataset",
+            "—",
+            "cloud_gallery_full.csv",
+            "The cleaned cloud photo rows and the synthetic no-cloud rows are concatenated. "
+            "This is the dataset you are exploring in this app.",
+        ),
+    ]
+
+    for title, script, output, description in _steps:
+        with st.expander(title):
+            col_a, col_b = st.columns([3, 1])
+            with col_a:
+                st.markdown(description)
+            with col_b:
+                st.markdown(f"**Script:** `{script}`")
+                st.markdown(f"**Output:** `{output}`")
+
+    st.markdown("---")
+    st.subheader("Try it yourself")
+    st.markdown(
+        "The full pipeline above runs on the complete dataset. "
+        "A demo version that runs all 11 steps on **~80 photos** is included in the repository:"
+    )
+    st.code("python scripts/build_cloud_gallery_demo.py", language="bash")
+    st.caption(
+        "Requirements: a browser session cookie from cloudappreciationsociety.org (free account). "
+        "An OpenWeatherMap API key is optional — without it, geocoding falls back to Nominatim."
+    )
 
 
 # ══════════════════════════════════════════════════════════
@@ -300,6 +442,21 @@ with tab1:
         m3.metric("Countries", df_filtered["country_name"].nunique())
         years_span = int(df_filtered["year"].max() - df_filtered["year"].min()) + 1
         m4.metric("Years covered", years_span)
+
+        with st.expander("Data quality report", expanded=False):
+            st.caption(
+                "Quality report runs on the **full dataset** (sidebar filters not applied), "
+                "so the counts are always consistent."
+            )
+            qr_df = data_quality_report(df_all)
+            # Show as a clean table (suppress the printed version — we display it ourselves)
+            st.dataframe(
+                qr_df[qr_df["count"] != ""].rename(
+                    columns={"check": "Check", "count": "Count", "note": "Note"}
+                ),
+                hide_index=True,
+                use_container_width=True,
+            )
 
         st.markdown("---")
 
@@ -595,9 +752,20 @@ with tab3:
         ).add_to(_m)
         st_folium(_m, height=420, use_container_width=True)
 
+    # ── Data source: quality_df by default ──────────────────
+    st.markdown("---")
+    use_full = st.checkbox(
+        "Include all rows (lower quality — fallback datetime)",
+        value=False,
+        key="feel_use_full",
+        help="By default only rows with a reliable capture time (EXIF/XMP/FILENAME) are used, "
+             "plus all no-cloud rows. Tick this to include fallback-time rows as well.",
+    )
+    _feel_base = df_all if use_full else make_quality_df(df_all)
+
     # ── Filter data ──────────────────────────────────────────
     df_feel = bounding_box_filter(
-        df_all.dropna(subset=["latitude", "longitude"]),
+        _feel_base.dropna(subset=["latitude", "longitude"]),
         feel_lat, feel_lon, feel_radius,
     )
     if feel_cloud and feel_cloud != "All":
