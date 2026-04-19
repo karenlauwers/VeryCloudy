@@ -465,6 +465,59 @@ with tab_build:
         "An OpenWeatherMap API key is optional — without it, geocoding falls back to Nominatim."
     )
 
+    st.markdown("---")
+    st.subheader("What I should have done better")
+    st.markdown(
+        "Looking back at the pipeline, there are several things I would do differently. "
+        "These are not bugs — the pipeline works — but choices that made the code more complex, "
+        "less consistent, or harder to maintain than it needed to be."
+    )
+
+    with st.expander("Date & Time"):
+        st.markdown("""
+**1. Fallback date, not just fallback time**
+The pipeline documents and flags *fallback time* (11:00 AM when no time was found), but the same problem exists for the *date*: when no capture date is found, the upload date is used as a proxy. This fallback date deserved the same explicit flagging and documentation as the fallback time.
+
+**2. Priority logic could have been simpler**
+To extract date and time from metadata, the pipeline collects results from both Pillow and exifread in parallel and then picks the best using a priority list. A simpler design would have been a sequential fallback: try exifread → if nothing, try Pillow → if nothing, try XMP. Easier to reason about and less code.
+
+**3. Convert to UTC immediately**
+UTC conversion only happens later in the pipeline (in `weather.py`), because the date extraction step keeps local/naive times. Had we converted to UTC right away in `date.py`, the column names would have been consistent from the start and the renaming step in `update.py` would not have been necessary.
+
+**4. Use a sunrise/sunset library for tagged images**
+Many photos have "sunrise" or "sunset" in the title or tags. For those, the exact time could have been computed from the location and date using a library like `astral` or `ephem`. This would have given far more realistic capture times than the 11:00 AM fallback.
+
+**5. Choose fallback time from data, not by assumption**
+The fallback time of 11:00 AM was chosen by intuition. A better approach: take all rows with a reliable capture time, find the most frequent hour, and use that as the fallback. The data itself would justify the choice.
+
+**6. Choose fallback date from data, not by assumption**
+The fallback date uses the upload date directly. A better approach: for rows with a real capture date, compute the difference between upload date and capture date, take the median (or a chosen percentile), and subtract that offset from the upload date when the real date is missing. The result would be a statistically grounded estimate rather than a guess.
+""")
+
+    with st.expander("Location"):
+        st.markdown("""
+**Reverse geocoding should have been part of location.py**
+When GPS coordinates are found in image metadata, there is no human-readable city, region or country — only raw lat/lon. Reverse geocoding to fill those fields was deferred to `update.py` at the end of the pipeline. It would have been cleaner and more consistent to do this immediately in `location.py`, the same script that finds the coordinates.
+""")
+
+    with st.expander("Pipeline & Code quality"):
+        st.markdown("""
+**Redundant async infrastructure across scripts**
+`date.py`, `location.py` and `weather.py` each contain their own copy of the same async scaffolding: `RateLimiterPerHost`, `fetch_range_or_full`, the `aiohttp` session setup, the batch-flush CSV writer, and the resume-by-lightbox_id logic. This should have been extracted into a shared module (e.g. `verycloudy/pipeline.py`) that all three scripts import. A class-based design would have been even cleaner.
+
+**Inconsistent library priority between scripts**
+In `date.py`, Pillow is tried before exifread when selecting the best datetime. In `location.py`, exifread is tried before Pillow for GPS data. There is no deliberate reason for this difference — it is an inconsistency that crept in because the two scripts were written independently.
+
+**Inconsistent resume behaviour**
+All scripts support resuming an interrupted run by skipping already-processed `lightbox_id`s — except `no_clouds.py`, which raises an error if the output file already exists. A consistent resume pattern across all scripts would have been better.
+
+**File merging was done manually**
+After each pipeline step, the output CSV was merged with the base file by hand. This could have been scripted (a simple `pandas` left-join), making the pipeline fully reproducible end-to-end without manual steps.
+
+**Cloud type classification is purely rule-based**
+Extracting cloud types from titles and tags works well for clear English keywords, but fails on ambiguous phrasing, abbreviations, or non-English titles. A small trained text classifier (even a simple TF-IDF + logistic regression on the labelled rows) would have handled these cases more robustly.
+""")
+
 
 # ══════════════════════════════════════════════════════════
 # TAB 1 — Explorer
