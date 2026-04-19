@@ -38,7 +38,7 @@ from selenium.webdriver.support import expected_conditions as EC
 def accept_cookies(driver, timeout=5):
     try:
         # If the banner is inside an iframe, switch into it first (common on some sites)
-        # Try to locate a cookie iframe by common patterns; adjust if needed.
+        # Try to locate a cookie iframe by common patterns
         cookie_iframes = driver.find_elements(By.CSS_SELECTOR, "iframe[src*='cookie'], iframe[id*='cookie'], iframe[class*='cookie']")
         if cookie_iframes:
             driver.switch_to.frame(cookie_iframes[0])
@@ -218,7 +218,7 @@ def scrape_cloud_information(driver, seen_ids = None):
         # Deduplicate
         # If no ID, fall back to image_url as a secondary unique key
         if not lightbox_id:
-            # No ID -> skip (matches your intent)
+            # No ID -> skip 
             continue
         if lightbox_id in seen_ids:
             # Duplicate -> skip
@@ -292,7 +292,6 @@ def scrape_cloud_information(driver, seen_ids = None):
             "author_name": author_name,
             "author_profile": author_profile,
             "title": title,
-            # "tags": tags,
             "tags": ", ".join(tags),          # flatten for CSV
         }
         cloud_information.append(record)
@@ -323,7 +322,6 @@ def scrape_in_batches(
         # Use the unique key as index for nicer CSV
         if "lightbox_id" in df.columns:
             df = df.set_index("lightbox_id")
-        # df.index.name = "cloud_id" # do not do this, rename only in the end, when final df and csv
         df.to_csv(outfile, mode=mode, header=(mode == "w"), index=True, index_label="cloud_id")
         print(f"Saved {len(rows)} rows to {outfile} (mode={mode})")
 
@@ -403,12 +401,3 @@ def scrape_in_batches(
         df_final.index.name = "cloud_id"
 
     return df_final
-
-# hoeft niet want de laatste batch zit ook al in de csv... Je kan wel de final df nog schrijven naar een aparte csv maar strikt genomen niet nodig
-# def write_to_csv_with_index(df, filename):
-#     # Write to CSV with index
-#     csv_file = df.to_csv(filename, index=True)
-
-#     print(f"Saved {len(df)} rows to {filename}")
-#     return csv_file
-

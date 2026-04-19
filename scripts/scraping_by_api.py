@@ -92,7 +92,7 @@ def append_csv(rows: List[Dict[str, str]], path: str):
             w.writerow(r)
 
 # Write the final files and save (at the end of the crawl)
-# Be aware: this writes a new csv, and overwrites if you use the same filepath!!! Dus als je dan save gebruikt, geeft het bestand dan een andere naam!  
+# Be aware: this writes a new csv, and overwrites if you use the same filepath!!! Dus als je dan save gebruikt, geef het bestand dan een andere naam!  
 def save_csv(rows: List[Dict[str, str]], path: str):
     if not rows:
         print("No data to save.")
@@ -154,7 +154,6 @@ def fetch_slideshow_page(
     timeout: int = 30,
 ) -> tuple[str, bool]:
 
-
     # Building the POST payload - what to ask for 
     data = {
         "action": "get_slideshow",
@@ -167,7 +166,6 @@ def fetch_slideshow_page(
     resp = session.post(AJAX, data=data, timeout=timeout)
 
     # Receive and handle json in response
-
     try:
         j = resp.json()
         # als de response niet in json is: 
