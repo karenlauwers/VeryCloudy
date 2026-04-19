@@ -330,11 +330,13 @@ with tab_build:
             "date.py",
             "main_date.py",
             "clouds_date.csv",
-            "To get date and time of the spotted cloud, tried to get information from:  \n",
+            "To get date and time of the spotted cloud, try to extract information from metadata, via EXIF or XMP:  \n",
             "**Preferred**: EXIF DateTimeOriginal (1st), XMP date tags (2nd)  \n",
             "**Otherwise**: date and time pattern in filename  \n", 
             "**Fallback**: date (upload date) and/or time (11 am)  \n",
-            "To get EXIF-data: fetch from each image its first 256 KB via a Range request and read EXIF/XMP metadata. This works for newer images.", 
+            "To get EXIF-data:  \n" 
+            "Fetch from each image its first 256 KB via a Range request (or full range of bytes if this does not work) and read EXIF/XMP metadata. This works for newer images.  \n", 
+            "Reading EXIF-data is done by PILLOW-library and EXIFREAD-library. Reading XMP-data is done by reading string. Then the best date is chosen (see order above).  \n"
             "If none found, a fallback time of 11:00 is used and **fallback_dt_used** is flagged. ", 
             "Only rows with a real datetime are considered quality data for weather analysis.",
         ),
@@ -353,7 +355,7 @@ with tab_build:
             "main_location.py",
             "clouds_location.csv",
             "To get the location of the spotted cloud, tried to get information from:  \n", 
-            "**Preferred:** read GPS coordinates from EXIF/IPTC/XMP metadata embedded in the image.  \n", 
+            "**Preferred:** read GPS coordinates from EXIF/IPTC/XMP metadata embedded in the image (prefer extraction with EXIFREAD, then PILLOW, then XMP).  \n", 
             "**Fallback:** parse the photo title with regex patterns and spaCy NER to find a place name,  \n",
             "then geocode it via the OpenWeatherMap Geocoding API (if a key is available) or Nominatim to get latitude and longitude.",
         ),
@@ -372,7 +374,7 @@ with tab_build:
             "main_weather.py",
             "clouds_weather.csv ",
             "For each row that has coordinates and a date, query the **Open-Meteo** historical weather API. ", 
-            "In the first attempts, I worked with Open Weather Map (OWM) - from which I got a student API key. But the possibilities for historical info were to limited. ", 
+            "In the first attempts, I worked with Open Weather Map (OWM) - from which I got a student API key. But the possibilities for historical info were too limited. ", 
             "Then I tried Open-Meteo, which is free and covers hourly data back to 1940. ", 
             "Working with Open-Meteo is limited as well: 10.000 API calls per day, 5.000 per hour and 600 per minute.", 
             "Time limits work with a rolling window, looking back at the past 60 minutes. ", 
@@ -383,8 +385,9 @@ with tab_build:
             "**If XMP-time:** this is UTC time, use UTC time  \n", 
             "**If EXIF or filename**: this is local time, convert to UTC time  \n", 
             "**If fallbacktime**: this is a fictive time, treat as UTC time  \n", 
+            "Code requests the full day of hourly data and then picks the hour closest to the target timestamp.  \n" 
             "Returns temperature, humidity, pressure, dew point, wind, cloud cover levels, precipitation and weather code ", 
-            "for the exact hour and location of the photo.",
+            "for the picked hour and location of the photo.",
 
         ),
         (
@@ -425,9 +428,12 @@ with tab_build:
             "The model needs a **negative class**: observations where the sky is clear.  \n",
             "Clear-sky weather data is sampled from Open Meteo:  \n",
             "**Location**: randomly chosen from real locations in the dataset. Each location can generate max 3 rows with no-cloud information (to guarantee spread)  \n",
-            "**Date**: randomly chosen  \n", 
-            "Looking for Open Meteo reporting 0% cloud cover and fetching the relevant weather information. ", 
-            "Built a file with the same columns as the basic dataset, to be able to concatenate them together. ", 
+            "**Date**: randomly chosen based on the month (month is randomly chosen) \n", 
+            "Request process:  \n"
+            "Looking for Open Meteo for the randomly chosen location and month.  \n"
+            "Requesting all hourly information for the randmoly chosen month.  \n "
+            "From that response, report weather information from maximum 3 rows (randomly chosen) that report 0% cloud cover and weather code 'clear sky' within timeframe 7am and 6pm.  \n", 
+            "Built a file with the same columns as the basic dataset, to be able to concatenate them together.  \n", 
             "These synthetic rows get **is_cloudy = False** and no image URL.",
         ),
         (
