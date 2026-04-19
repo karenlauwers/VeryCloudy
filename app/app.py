@@ -300,14 +300,16 @@ with tab_build:
 
     st.markdown("---")
 
-    st.subheader("Why not Selenium?")
+    st.subheader("Web Scraping")
     st.markdown(
-        "The first scraping attempt used **Selenium** to automate a real browser session on the "
-        "[Cloud Appreciation Society](https://cloudappreciationsociety.org) gallery. "
+        "The basic idea was to build a dataset from the [Cloud Appreciation Society](https://cloudappreciationsociety.org) gallery. "
+        "I asked for & got permission from the organisation to scrape their website. I worked at very slow pace rate to not overload the website. "
+        "The first scraping attempts used **Selenium** to automate a real browser session on the website. "
         "It worked for small tests but turned out too brittle for a full-scale collection: "
-        "any layout change, slow page load, or session timeout broke the run. "
-        "A direct **API approach** (HTTP requests to the gallery's JSON endpoint) proved far more stable "
-        "and was used for all serious data collection."
+        "any slow page load or session timeout broke the run. "
+        "I found another way to srape the website: via direct **API approach** (HTTP requests to the gallery's JSON endpoint). "
+        "This was not too complex: the CAS-website is a common WorldPress-website and the API-approach proved to be far more stable. "
+        "This approach was used to scrape all cloud photos and information from the website. I repeated 2 times after a few weeks to collect new information. "
     )
 
     st.markdown("---")
@@ -316,102 +318,139 @@ with tab_build:
     _steps = [
         (
             "Step 1 — Scrape the CAS gallery",
-            "scripts/scraping_by_api.py",
+            "scraping_by_api.py",
+            "main_scraping.py",
             "cloud_gallery.csv",
-            "Send HTTP requests to the Cloud Appreciation Society gallery API, page by page. "
-            "Each photo yields a lightbox ID, title, author, image URL, tags, and a link to the full page. "
+            "Send HTTP requests to the Cloud Appreciation Society gallery API, page by page. ",
+            "Each photo yields a lightbox ID, title, author, image URL, tags, and a link to the full page. ",
             "The **lightbox_id** is the join key used throughout the entire pipeline.",
         ),
         (
-            "Step 2 — Extract date and time from EXIF metadata",
-            "scripts/date.py",
+            "Step 2 — Extract date and time",
+            "date.py",
+            "main_date.py",
             "clouds_date.csv",
-            "Fetch each image (or its first 256 KB via a Range request) and read EXIF/XMP metadata. "
-            "Sources tried in order: EXIF DateTimeOriginal → XMP date tags → date pattern in filename. "
-            "If none found, a fallback time of 11:00 is used and **fallback_dt_used** is flagged. "
+            "To get date and time of the spotted cloud, tried to get information from:  \n",
+            "**Preferred**: EXIF DateTimeOriginal (1st), XMP date tags (2nd)  \n",
+            "**Otherwise**: date and time pattern in filename  \n", 
+            "**Fallback**: date (upload date) and/or time (11 am)  \n",
+            "To get EXIF-data: fetch from each image its first 256 KB via a Range request and read EXIF/XMP metadata. This works for newer images.", 
+            "If none found, a fallback time of 11:00 is used and **fallback_dt_used** is flagged. ", 
             "Only rows with a real datetime are considered quality data for weather analysis.",
         ),
         (
-            "Step 3 — Merge scrape + date",
-            "—",
-            "cloud_gallery_with_date.csv",
-            "Left-join the scrape file and the date file on **lightbox_id**. "
+            "Step 3 — Merge scrape and date",
+            "-",
+            "-",
+            "Result in cloud_gallery_with_date.csv",
+            "Merged the result files cloud_gallery and date manually. ",
+            "Left-join the scrape file and the date file on **lightbox_id**. ", 
             "All photo rows are kept; the date columns are added where available.",
         ),
         (
             "Step 4 — Extract location",
-            "scripts/location.py",
+            "location.py",
+            "main_location.py",
             "clouds_location.csv",
-            "Two-stage location extraction per photo. "
-            "**Stage A:** read GPS coordinates from EXIF/IPTC/XMP metadata embedded in the image. "
-            "**Stage B (fallback):** parse the photo title with regex patterns and spaCy NER to find a place name, "
-            "then geocode it via the OpenWeatherMap Geocoding API (if a key is available) or Nominatim.",
+            "To get the location of the spotted cloud, tried to get information from:  \n", 
+            "**Preferred:** read GPS coordinates from EXIF/IPTC/XMP metadata embedded in the image.  \n", 
+            "**Fallback:** parse the photo title with regex patterns and spaCy NER to find a place name,  \n",
+            "then geocode it via the OpenWeatherMap Geocoding API (if a key is available) or Nominatim to get latitude and longitude.",
         ),
         (
             "Step 5 — Merge with location",
-            "—",
-            "cloud_gallery_with_date_loc.csv",
-            "Left-join the previous file with the location output on **lightbox_id**. "
+            "-",
+            "-",
+            "cloud_gallery_with_date_loc.csv ",
+            "Merged the result files cloud_gallery_with_date and location manually. ",
+            "Left-join the previous file with the location output on **lightbox_id**. ", 
             "Adds city, region, country, latitude and longitude.",
         ),
         (
-            "Step 6 — Fetch historical weather",
-            "scripts/weather.py",
-            "clouds_weather.csv",
-            "For each row that has coordinates and a date, query the **Open-Meteo** historical weather API. "
-            "Open-Meteo is free and covers hourly data back to 1940. "
-            "Returns temperature, humidity, pressure, dew point, wind, cloud cover levels, precipitation and weather code "
+            "Step 6 — Fetch historical weather information",
+            "weather.py", 
+            "main_weather.py",
+            "clouds_weather.csv ",
+            "For each row that has coordinates and a date, query the **Open-Meteo** historical weather API. ", 
+            "In the first attempts, I worked with Open Weather Map (OWM) - from which I got a student API key. But the possibilities for historical info were to limited. ", 
+            "Then I tried Open-Meteo, which is free and covers hourly data back to 1940. ", 
+            "Working with Open-Meteo is limited as well: 10.000 API calls per day, 5.000 per hour and 600 per minute.", 
+            "Time limits work with a rolling window, looking back at the past 60 minutes. ", 
+            "To finish the rows of the dataset in a considerable amount of time, I ran the code several times, using different IP-addresses by using mobile hotspots of my family members.", 
+            "Important issue is the exact time for wich the weather data have to be fetched:  \n", 
+            "Open Meteo works with UTC-time. But we have mostly local naive time (from EXIF or filename) or fallbacktime or rarely XMP-time.  \n", 
+            "Strategy used:  \n", 
+            "**If XMP-time:** this is UTC time, use UTC time  \n", 
+            "**If EXIF or filename**: this is local time, convert to UTC time  \n", 
+            "**If fallbacktime**: this is a fictive time, treat as UTC time  \n", 
+            "Returns temperature, humidity, pressure, dew point, wind, cloud cover levels, precipitation and weather code ", 
             "for the exact hour and location of the photo.",
+
         ),
         (
             "Step 7 — Merge with weather",
-            "—",
+            "-", 
+            "-", 
             "cloud_gallery_with_date_loc_weather.csv",
-            "Left-join with the weather output on **lightbox_id**. "
+            "Merged the result of cloud_gallery_with_date_loc and the weather information manually. ",
+            "Left-join with the weather output on **lightbox_id**. ",
             "All weather columns are added; rows without coordinates or date simply have NaN weather values.",
         ),
         (
-            "Step 8 — Extract cloud types from tags",
-            "scripts/cloudtype.py",
+            "Step 8 — Extract cloud types from title or tags",
+            "cloudtype.py",
+            "main_cloudtype.py",
             "cloud_gallery_all_info.csv",
-            "Each CAS photo has a set of community-submitted tags. "
-            "A rule-based classifier maps these tags to the 10 WMO cloud genera (cumulus, cirrus, …) "
-            "and up to 30+ subtypes (cumulonimbus incus, cirrus fibratus, …). "
-            "Up to 3 cloud types and 2 subtypes are extracted per photo.",
+            "Most CAS photos have community-submitted information on the cloud (sub)type in the title or the tags. ",
+            "A rule-based classifier maps these tags to the 10 WMO cloud genera (cumulus, cirrus, …) ",
+            "and up to 30+ subtypes (cumulonimbus incus, cirrus fibratus, …).  \n",
+            "Up to 3 cloud types and 2 subtypes are extracted per photo. ",
+            "First, we look at the title, then at the tags. First type encountered is filled in in the first column etc. ",
+            "If a cloud (sub)type is filled in, it is never overwritten. If there are more than 3 types or 2 subtypes mentioned, they are not taken in account.",
         ),
         (
             "Step 9 — Post-processing and cleanup",
-            "scripts/update.py",
+            "update.py", 
+            "main_update.py",
             "cloud_gallery_all_info_clean.csv",
-            "Column renames, country code normalisation, subtype fallback logic, "
-            "and a flag for rows where the cloud cover is 0 despite is_cloudy=True "
-            "(a known Open-Meteo API quirk for photos taken at the exact fallback time).",
+            "**Column renames:** especially with date and time settings, there are columns with same names, set throughout the process - changed the names to clarify their reason of existence  \n", 
+            "**Reverse geocoding**: when the location is found by metadata of the image, there is no human readable information on city, region, country. Code to fix this.   \n", 
+            "**Subtype fallback logic**: there are images that have a cloud subtype, but not main type. Most subtypes are a special form of a certain main type. Code to fix this.",
         ),
         (
             "Step 10 — Generate no-cloud rows",
-            "scripts/no_clouds.py",
-            "no_clouds.csv",
-            "The model needs a **negative class**: observations where the sky is clear. "
-            "Clear-sky weather data is sampled from Open-Meteo at real geographic locations "
-            "drawn from the cloud photo dataset, on dates where Open-Meteo reported 0 % cloud cover. "
+            "no_clouds.py",
+            "main_no_clouds.py",
+            "no_clouds.csv ",
+            "The model needs a **negative class**: observations where the sky is clear.  \n",
+            "Clear-sky weather data is sampled from Open Meteo:  \n",
+            "**Location**: randomly chosen from real locations in the dataset. Each location can generate max 3 rows with no-cloud information (to guarantee spread)  \n",
+            "**Date**: randomly chosen  \n", 
+            "Looking for Open Meteo reporting 0% cloud cover and fetching the relevant weather information. ", 
+            "Built a file with the same columns as the basic dataset, to be able to concatenate them together. ", 
             "These synthetic rows get **is_cloudy = False** and no image URL.",
         ),
         (
             "Step 11 — Concatenate into the final dataset",
-            "—",
-            "cloud_gallery_full.csv",
-            "The cleaned cloud photo rows and the synthetic no-cloud rows are concatenated. "
-            "This is the dataset you are exploring in this app.",
+            "-",
+            "-",
+            "cloud_gallery_full.csv ",
+            "Manually concatenated the updated cloud_gallery_all_info_clean with the no_clouds.",
+            "The cleaned cloud photo rows and the synthetic no-cloud rows are concatenated. ", 
+            "This is the dataset explored in the analysis and in this app.",
         ),
     ]
 
-    for title, script, output, description in _steps:
+    for step in _steps:
+        title, script, run, output = step[0], step[1], step[2], step[3]
+        description = " ".join(step[4:])
         with st.expander(title):
-            col_a, col_b = st.columns([3, 1])
+            col_a, col_b = st.columns([4, 1])
             with col_a:
                 st.markdown(description)
             with col_b:
                 st.markdown(f"**Script:** `{script}`")
+                st.markdown(f"**Run**: `{run}`")
                 st.markdown(f"**Output:** `{output}`")
 
     st.markdown("---")
