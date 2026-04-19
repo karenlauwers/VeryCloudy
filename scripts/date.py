@@ -114,8 +114,13 @@ def parse_datetime_from_filename(url_or_path: str, fallback_time: time) -> tuple
         return None, None
 
 # -------------------------
-# EXIF/XMP extraction (in memory)
+# EXIF/XMP extraction 
 # -------------------------
+
+# EXIF-data = written by the camera, date/time/location stamp from the camera 
+# XMP-data = written by software to edit the image 
+
+# check exif-data with Pillow-library, general purpose image library
 def extract_exif_pillow(img_bytes: bytes) -> dict:
     out = {}
     try:
@@ -129,6 +134,7 @@ def extract_exif_pillow(img_bytes: bytes) -> dict:
         pass
     return out
 
+# check exif-data with exifread-library, more robust, can handle cases that pillow cannot handle 
 def extract_exif_exifread(img_bytes: bytes) -> dict:
     out = {}
     try:
@@ -140,6 +146,7 @@ def extract_exif_exifread(img_bytes: bytes) -> dict:
         pass
     return out
 
+# check xmp-data 
 def extract_xmp_datetime(img_bytes: bytes) -> dict:
     """
     Parse embedded XMP packet (lightweight regex) for DateTimeOriginal/CreateDate.
@@ -223,7 +230,7 @@ def choose_best_datetime(exif_p: dict, exif_e: dict, xmp: dict) -> tuple[str | N
     return (None, None, None)
 
 # -------------------------
-# Networking (memory only)
+# Networking 
 # -------------------------
 class RateLimiterPerHost:
     def __init__(self, max_per_host: int):
