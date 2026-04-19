@@ -2,7 +2,7 @@
 
 **Year 1 Data Science thesis project — Karen Lauwers**
 
-VeryCloudy builds a cloud and weather intelligence system to predict which cloud types will occur at a specific location up to 3 days in advance.
+VeryCloudy builds a cloud and weather system to predict which cloud types will occur at a specific location up to 3 days in advance.
 
 The project has 4 phases:
 1. Build the cloud database** (data acquisition + enrichment)
@@ -20,7 +20,7 @@ The full dataset is at `dataset/cloud_gallery_full.csv`.
 |---|---|
 | Rows | ~31,000 |
 | Columns | 48 |
-| Cloud photo rows | ~26,000 (is_cloudy ≠ False) |
+| Cloud photo rows | ~26,000 (is_cloudy = True) |
 | No-cloud rows | ~5,000 (is_cloudy = False, synthetic from Open-Meteo) |
 | Source | [Cloud Appreciation Society](https://cloudappreciationsociety.org) + Open-Meteo |
 
@@ -28,7 +28,7 @@ The full dataset is at `dataset/cloud_gallery_full.csv`.
 
 | Column | Description |
 |---|---|
-| `lightbox_id` | Unique photo ID — join key across all intermediate files |
+| `lightbox_id` | Unique photo ID from CAS-website — join key across all intermediate files; for is_cloudy = False synthetic rows from Open-Meteo = synthetic id starting with CLEAR_  |
 | `image_url` | Direct URL to the photo |
 | `date_taken`, `time_taken` | Capture date and time (local) |
 | `datetime_source` | How the datetime was found: EXIF / XMP / FILENAME / fallback |
@@ -72,7 +72,7 @@ Required for location extraction from photo titles:
 python -m spacy download en_core_web_sm
 ```
 
-Or, if the above is blocked by your network:
+Or, if the above is blocked by your network - as happened to me:
 
 ```bash
 pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
@@ -162,7 +162,7 @@ https://github.com/karenlauwers/VeryCloudy
 
 ## Data sources
 
-- **[Cloud Appreciation Society](https://cloudappreciationsociety.org)** — cloud photos, titles, tags and author information. Used with respect for their rate limits.
+- **[Cloud Appreciation Society](https://cloudappreciationsociety.org)** — cloud photos, titles, tags and author information. Used with permission of the organistion & with respect for their rate limits.
 - **[Open-Meteo](https://open-meteo.com)** — free historical weather API, no key required. Hourly data back to 1940.
 - **[OpenWeatherMap Geocoding API](https://openweathermap.org/api/geocoding-api)** — optional, used to resolve place names to coordinates. Free tier is sufficient.
 - **[Nominatim / OpenStreetMap](https://nominatim.org)** — free geocoding fallback (1 req/sec limit).
