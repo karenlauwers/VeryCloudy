@@ -84,5 +84,5 @@ temp/
 .env
 .env.*
 
-# Zip-folders or files
+# Zip-folders or files to ignore
 .zip
