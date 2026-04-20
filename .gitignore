@@ -83,3 +83,6 @@ temp/
 # Keys, stuff not for your eyes
 .env
 .env.*
+
+# Zip-folders or files
+.zip
