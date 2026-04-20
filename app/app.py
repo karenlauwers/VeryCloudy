@@ -100,8 +100,6 @@ def _to_country_name(val) -> str:
 def load_data() -> pd.DataFrame:
     df = pd.read_csv(FILEPATH_DATASET_TO_SHARE, low_memory=False)
     df["year"] = pd.to_datetime(df["date_taken"], errors="coerce").dt.year
-    # Drop rows with clearly bad years (CAS founded 2004 — anything earlier is a faulty EXIF date)
-    df = df[df["year"].isna() | (df["year"] >= 2004)]
     if "is_cloudy" in df.columns:
         df["is_cloudy"] = df["is_cloudy"].fillna(True).astype(bool)
         mask_no_cloud = ~df["is_cloudy"] & df["cloud_type1"].isna()
@@ -120,7 +118,7 @@ df_all = load_data()
 
 CLOUD_TYPES = sorted([t for t in df_all["cloud_type1"].dropna().unique() if t != "unclassified"])
 COUNTRIES   = sorted(df_all["country_name"].dropna().replace("", pd.NA).dropna().unique().tolist())
-YEAR_MIN    = int(df_all["year"].min()) if df_all["year"].notna().any() else 2005
+YEAR_MIN    = 2004  # CAS founded 2004; pre-2004 dates are faulty EXIF
 YEAR_MAX    = int(df_all["year"].max()) if df_all["year"].notna().any() else 2026
 
 WEATHER_PARAMS = {
@@ -168,7 +166,12 @@ def apply_filters(
         mask &= df["subtype1"].isin(subtypes)
     if countries:
         mask &= df["country_name"].isin(countries)
-    year_mask = df["year"].between(year_range[0], year_range[1]) | df["year"].isna()
+    # Rows with year in slider range, NaN year, or pre-2004 faulty EXIF dates are all kept
+    year_mask = (
+        df["year"].between(year_range[0], year_range[1]) |
+        df["year"].isna() |
+        df["year"].lt(year_range[0])
+    )
     mask &= year_mask
     return df[mask]
 
@@ -281,8 +284,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-tab_build, tab1, tab2, tab3, tab4 = st.tabs([
-    "Build", "Explore", "Look", "Feel", "Learn"
+tab_build, tab1, tab2, tab3, tab4, tab_conclude = st.tabs([
+    "Build", "Explore", "Look", "Feel", "Learn", "Conclude"
 ])
 
 
@@ -534,12 +537,13 @@ with tab1:
     if df_filtered.empty:
         st.info("No data matches the current filters.")
     else:
-        m1, m2, m3, m4 = st.columns(4)
+        m1, m2, m3 = st.columns(3)
         m1.metric("Observations", f"{len(df_filtered):,}")
-        m2.metric("Cloud types", df_filtered["cloud_type1"].nunique())
-        m3.metric("Countries", df_filtered["country_name"].nunique())
-        years_span = int(df_filtered["year"].max() - df_filtered["year"].min()) + 1
-        m4.metric("Years covered", years_span)
+        m2.metric("Countries", df_filtered["country_name"].nunique())
+        valid_years = df_filtered["year"].dropna()
+        valid_years = valid_years[valid_years.ge(2004)]
+        years_span = int(valid_years.max() - valid_years.min()) + 1 if not valid_years.empty else 0
+        m3.metric("Years covered", years_span)
 
         with st.expander("Data quality report", expanded=False):
             st.caption(
@@ -548,13 +552,9 @@ with tab1:
             )
             qr_df = data_quality_report(df_all)
             # Show as a clean table (suppress the printed version — we display it ourselves)
-            st.dataframe(
-                qr_df[qr_df["count"] != ""].rename(
-                    columns={"check": "Check", "count": "Count", "note": "Note"}
-                ),
-                hide_index=True,
-                use_container_width=True,
-            )
+            qr_display = qr_df.rename(columns={"check": "Check", "count": "Count", "note": "Note"})
+            qr_display["Count"] = qr_display["Count"].astype(str).replace("", "")
+            st.dataframe(qr_display, hide_index=True, width="stretch")
 
         st.markdown("---")
 
@@ -768,29 +768,34 @@ with tab3:
 
     with col_loc:
         st.subheader("Location")
-        loc_mode = st.radio("Find location by", ["Place name", "Coordinates"], horizontal=True, key="feel_mode")
+        feel_all_locs = st.checkbox("All locations", value=False, key="feel_all_locs")
 
-        if loc_mode == "Place name":
-            feel_name = st.text_input("Place name", "Brussels, Belgium", key="feel_name")
-            if feel_name:
-                geo = geocode_name(feel_name)
-                if geo:
-                    feel_lat, feel_lon, feel_display = geo
-                    st.caption(f"📍 {feel_display}")
-                    st.caption(f"Coordinates: {feel_lat:.4f}, {feel_lon:.4f}")
+        feel_lat, feel_lon = 50.85, 4.35  # defaults, overwritten below if needed
+        feel_radius = 100
+
+        if not feel_all_locs:
+            loc_mode = st.radio("Find location by", ["Place name", "Coordinates"], horizontal=True, key="feel_mode")
+
+            if loc_mode == "Place name":
+                feel_name = st.text_input("Place name", "Brussels, Belgium", key="feel_name")
+                if feel_name:
+                    geo = geocode_name(feel_name)
+                    if geo:
+                        feel_lat, feel_lon, feel_display = geo
+                        st.caption(f"📍 {feel_display}")
+                        st.caption(f"Coordinates: {feel_lat:.4f}, {feel_lon:.4f}")
+                    else:
+                        st.warning("Location not found. Try a different name.")
                 else:
-                    st.warning("Location not found. Try a different name.")
-                    feel_lat, feel_lon = 50.85, 4.35
+                    pass
             else:
-                feel_lat, feel_lon = 50.85, 4.35
-        else:
-            feel_lat = st.number_input("Latitude",  value=50.85, format="%.4f", key="feel_lat")
-            feel_lon = st.number_input("Longitude", value=4.35,  format="%.4f", key="feel_lon")
-            place_name = reverse_geocode(feel_lat, feel_lon)
-            if place_name:
-                st.caption(f"📍 {place_name}")
+                feel_lat = st.number_input("Latitude",  value=50.85, format="%.4f", key="feel_lat")
+                feel_lon = st.number_input("Longitude", value=4.35,  format="%.4f", key="feel_lon")
+                place_name = reverse_geocode(feel_lat, feel_lon)
+                if place_name:
+                    st.caption(f"📍 {place_name}")
 
-        feel_radius = st.slider("Radius (km)", 10, 500, 100, step=10, key="feel_radius")
+            feel_radius = st.slider("Radius (km)", 10, 500, 100, step=10, key="feel_radius")
 
         st.markdown("---")
         st.subheader("Cloud filter")
@@ -835,20 +840,17 @@ with tab3:
 
     with col_map:
         st.subheader("Map")
-        _m = folium.Map(location=[feel_lat, feel_lon], zoom_start=7, tiles="CartoDB positron")
-        Marker(
-            location=[feel_lat, feel_lon],
-            tooltip="Selected location",
-        ).add_to(_m)
-        Circle(
-            location=[feel_lat, feel_lon],
-            radius=feel_radius * 1000,
-            color="#5B7FA6",
-            fill=True,
-            fill_opacity=0.15,
-            weight=2,
-        ).add_to(_m)
-        st_folium(_m, height=420, use_container_width=True)
+        if feel_all_locs:
+            _m = folium.Map(location=[20, 0], zoom_start=2, tiles="CartoDB positron")
+        else:
+            _m = folium.Map(location=[feel_lat, feel_lon], zoom_start=7, tiles="CartoDB positron")
+            Marker(location=[feel_lat, feel_lon], tooltip="Selected location").add_to(_m)
+            Circle(
+                location=[feel_lat, feel_lon],
+                radius=feel_radius * 1000,
+                color="#5B7FA6", fill=True, fill_opacity=0.15, weight=2,
+            ).add_to(_m)
+        st_folium(_m, height=420, width="stretch")
 
     # ── Data source: quality_df by default ──────────────────
     st.markdown("---")
@@ -862,10 +864,13 @@ with tab3:
     _feel_base = df_all if use_full else make_quality_df(df_all)
 
     # ── Filter data ──────────────────────────────────────────
-    df_feel = bounding_box_filter(
-        _feel_base.dropna(subset=["latitude", "longitude"]),
-        feel_lat, feel_lon, feel_radius,
-    )
+    if feel_all_locs:
+        df_feel = _feel_base.dropna(subset=["latitude", "longitude"])
+    else:
+        df_feel = bounding_box_filter(
+            _feel_base.dropna(subset=["latitude", "longitude"]),
+            feel_lat, feel_lon, feel_radius,
+        )
     if feel_cloud and feel_cloud != "All":
         df_feel = df_feel[df_feel["cloud_type1"].isin(feel_cloud)]
     elif feel_cloud == "All":
@@ -878,7 +883,8 @@ with tab3:
         df_feel = df_feel.copy()
         df_feel["_tdp_diff"] = df_feel["temp"] - df_feel["dew_point"]
 
-    st.metric("Observations in area", f"{len(df_feel):,}")
+    obs_label = "Observations (all locations)" if feel_all_locs else "Observations in area"
+    st.metric(obs_label, f"{len(df_feel):,}")
 
     # ── Charts ───────────────────────────────────────────────
     if df_feel.empty:
@@ -928,13 +934,13 @@ CLOUD_INFO = {
         "emoji": "⛅",
         "altitude": "Low–mid (600–2,000 m)",
         "description": "Puffy, cauliflower-shaped clouds with flat bases and rounded tops. They form by convection on sunny days when warm air rises. Usually indicate fair weather, but can grow into cumulonimbus.",
-        "weather_signal": "High temperature, moderate humidity, low pressure gradient. CAPE > 0 indicates potential for growth.",
+        "weather_signal": "High temperature, moderate humidity, low pressure gradient.",
     },
     "Cumulonimbus": {
         "emoji": "⛈️",
         "altitude": "Low to very high (up to 15 km)",
         "description": "Towering storm clouds that can reach the tropopause. Associated with heavy rain, lightning, hail and strong winds. The anvil-shaped top is a classic sign.",
-        "weather_signal": "High CAPE, strong wind shear, rapidly falling pressure, high humidity. Cloud cover often total.",
+        "weather_signal": "Strong wind shear, rapidly falling pressure, high humidity. Cloud cover often total.",
     },
     "Stratus": {
         "emoji": "🌫️",
@@ -1024,3 +1030,105 @@ with tab4:
         for param, desc in WEATHER_INFO.items():
             with st.expander(param):
                 st.markdown(desc)
+
+
+# ══════════════════════════════════════════════════════════
+# TAB CONCLUDE
+# ══════════════════════════════════════════════════════════
+with tab_conclude:
+    st.header("Conclusion")
+
+    st.markdown(
+        "Building this dataset was a genuine pleasure. "
+        "Scraping, cleaning, enriching and assembling a cloud database from scratch — "
+        "step by step, image by image — turned out to be a rewarding process in itself. "
+        "The result is a dataset of over 28,000 real cloud photographs, each enriched with "
+        "capture datetime, GPS location, historical weather data and a cloud type label."
+    )
+
+    st.markdown("---")
+    st.subheader("The analysis — honest about what it shows")
+
+    st.markdown(
+        "The analysis of the dataset turns out not to be conclusive. "
+        "Going in, the expectation was clear: humidity and the temperature-dew point spread "
+        "should be the strongest variables for distinguishing clear sky from cloudy sky. "
+        "When air temperature approaches the dew point, the air is near saturation — "
+        "clouds form. When the gap is large, the air is dry and the sky is (more) clear. "
+    )
+
+    st.markdown(
+        "In this dataset, that signal does not come through clearly. "
+        "Looking at the weather charts — histograms, box plots, the temperature vs dew point scatter — "
+        "the distributions for cloudy and clear-sky conditions overlap heavily. "
+        "No variable cleanly separates the two classes. "
+        "There are no strong conclusions to draw from the weather data as it stands."
+    )
+
+    st.markdown("---")
+    st.subheader("Why — the geography and the climate")
+
+    st.markdown(
+        "A large part of the explanation lies in where the photos come from. "
+        "The majority of images in this dataset were uploaded by photographers from the **United States**, "
+        "followed by the **United Kingdom**. "
+    )
+
+    st.markdown(
+        "This matters because climate is a confounding factor that is not yet included in the model. "
+        "The UK and many US regions have a maritime or temperate climate where the air is "
+        "persistently humid — even on clear days. "
+        "In those climates, the temperature-dew point spread is small regardless of whether "
+        "there are clouds in the sky, simply because the background humidity is always high. "
+        "That washes out exactly the signal we were hoping to find. "
+        "A model that does not account for the local climate baseline will struggle "
+        "to use humidity and dew point spread as meaningful features."
+    )
+
+    st.markdown("---")
+    st.subheader("A deeper issue — the nature of the dataset itself")
+
+    st.markdown(
+        "There is a more fundamental issue. "
+        "This is not a systematic scientific dataset. "
+        "It is built from images that people chose to upload to the "
+        "[Cloud Appreciation Society](https://cloudappreciationsociety.org) website — "
+        "and people upload what is extraordinary, dramatic, visually beautiful. "
+        "The most spectacular cumulonimbus, the most perfect lenticular cloud, "
+        "the most unusual optical phenomenon. "
+        "That is wonderful from an aesthetic point of view, "
+        "and it makes for a rich and diverse collection of cloud photography."
+    )
+
+    st.markdown(
+        "But it also means the dataset is not representative of the statistical "
+        "distribution of weather conditions under which clouds appear. "
+        "Ordinary overcast days with unremarkable stratocumulus are underrepresented. "
+        "Rare, photogenic phenomena are overrepresented. "
+        "A machine learning model trained on this data would learn what makes "
+        "a cloud *beautiful*, not necessarily what makes it predictable."
+    )
+
+    st.markdown("---")
+    st.subheader("And — the cloud classification of the images")
+
+    st.markdown(
+        "An issue as well - although I am not an expert... "
+        "I do doubt sometimes the (multiple) labels given to the clouds seen on the picture. "
+    )
+
+    st.markdown("---")
+    st.subheader("Looking ahead")
+
+    st.markdown(
+        "To build a model that can genuinely predict which cloud types will appear "
+        "given a weather forecast, a more systematic source of data would be needed — "
+        "for example meteorological observation networks, radiosonde records, "
+        "or scientific cloud classification databases that sample conditions uniformly "
+        "across time, location and cloud type."
+    )
+
+    st.markdown(
+        "That is a next step. "
+        "For now, the assignment was to build a database from scratch — and here it is. "
+    )
