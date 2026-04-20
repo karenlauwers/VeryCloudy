@@ -19,9 +19,7 @@ Typical notebook pattern
 
 Data filters applied inside functions
 --------------------------------------
-- _filter_valid_year   : drops the 1980 outlier row (all chart functions)
-- _filter_good_weather : drops rows where is_cloudy=True AND clouds=0
-                         (weather and scatter functions)
+- _filter_valid_year   : drops rows with year < 2004 (all chart functions)
 - make_quality_df      : keeps only rows with EXIF / XMP / FILENAME datetime
                          source; call this once in the notebook, then pass
                          quality_df to weather-related functions
@@ -110,17 +108,10 @@ def _color_list(labels: list[str]) -> list[str]:
 
 
 def _filter_valid_year(df: pd.DataFrame) -> pd.DataFrame:
-    """Drop the single 1980 outlier row."""
+    """Drop rows with a capture year before 2004 (CAS founded 2004; earlier dates are faulty EXIF)."""
     years = pd.to_datetime(df["date_taken"], errors="coerce").dt.year
-    return df[years.ne(1980) | years.isna()]
+    return df[years.ge(2004) | years.isna()]
 
-
-def _filter_good_weather(df: pd.DataFrame) -> pd.DataFrame:
-    """Drop rows where is_cloudy=True but total cloud cover=0 (weather API anomaly)."""
-    if "is_cloudy" not in df.columns or "clouds" not in df.columns:
-        return df
-    bad = df["is_cloudy"].eq(True) & df["clouds"].eq(0)
-    return df[~bad]
 
 
 def _owm_weather_group(code: float) -> str:
@@ -213,8 +204,8 @@ def data_quality_report(df: pd.DataFrame) -> pd.DataFrame:
     else:
         n_bad_cover = n_bad_fallback = "n/a"
 
-    years  = pd.to_datetime(df["date_taken"], errors="coerce").dt.year
-    n_1980 = int(years.eq(1980).sum())
+    years     = pd.to_datetime(df["date_taken"], errors="coerce").dt.year
+    n_pre2004 = int((years.lt(2004) & years.notna()).sum())
 
     # Datetime source breakdown — cloud photos only (no-cloud rows have no photo datetime)
     is_cloud_photo = pd.Series(True, index=df.index)
@@ -235,24 +226,48 @@ def data_quality_report(df: pd.DataFrame) -> pd.DataFrame:
     else:
         n_exif = n_xmp = n_filename = n_fallback = "n/a"
 
+    # Location source breakdown — cloud photos only
+    _LOC_SOURCE_ORDER = [
+        ("metadata",       "GPS coordinates from image metadata"),
+        ("reverse_geocode","from metadata, then set city, region, country"),
+        ("title_regex",    "place name found via regex in title"),
+        ("title_spacy",    "place name found via spaCy NER in title"),
+        ("title_spacy_lg", "place name found via spaCy large model in title"),
+        ("title_country",  "only country name found in title"),
+    ]
+    if "location_source" in df.columns:
+        loc_src = df.loc[is_cloud_photo, "location_source"]
+        loc_vc = loc_src.value_counts()
+        loc_counts = [(s, n, loc_vc.get(s, 0)) for s, n in _LOC_SOURCE_ORDER]
+        n_no_loc_src = int(loc_src.isna().sum())
+    else:
+        loc_counts = [(s, n, "n/a") for s, n in _LOC_SOURCE_ORDER]
+        n_no_loc_src = "n/a"
+
     n_quality = len(make_quality_df(df))
 
     rows = [
         {"check": "Total rows",                                 "count": n,                    "note": ""},
         {"check": "  → cloud photo rows (is_cloudy ≠ False)",  "count": n_cloud_photos,        "note": ""},
-        {"check": "  → no-cloud rows (is_cloudy = False)",     "count": n - n_cloud_photos,    "note": "no photo datetime — always included in quality_df"},
+        {"check": "  → no-cloud rows (is_cloudy = False)",     "count": n - n_cloud_photos,    "note": "no photo; synthetic — always included in quality_df"},
         {"check": "Rows without weather info",                  "count": n_no_weather,          "note": f"{100*n_no_weather/n:.1f}% of all rows"},
         {"check": "  → also no location",                       "count": n_no_weather_no_loc,   "note": "weather lookup impossible"},
-        {"check": "  → have location but no weather",           "count": n_no_weather_with_loc, "note": "likely too old for archive"},
-        {"check": "is_cloudy=True AND cloud cover=0",           "count": n_bad_cover,           "note": "weather API anomaly; excluded from weather charts"},
-        {"check": "  → used fallback time 11:00",               "count": n_bad_fallback,        "note": "time unknown → wrong hour sent to API"},
-        {"check": "Rows with date year = 1980",                 "count": n_1980,                "note": "outlier; excluded from all charts"},
+        {"check": "  → have location but no weather",           "count": n_no_weather_with_loc, "note": "unknown error in getting weather data"},
+        {"check": "is_cloudy=True AND cloud cover=0",           "count": n_bad_cover,           "note": "weather API anomaly"},
+        {"check": "  → used fallback date and time",               "count": n_bad_fallback,        "note": "real date & time unknown → wrong dt sent to API"},
+        {"check": "Rows with date year < 2004",                 "count": n_pre2004,             "note": "outlier; excluded from all charts"},
         {"check": "── Datetime source (cloud photos only) ──",  "count": "",                   "note": ""},
         {"check": "  → EXIF",                                   "count": n_exif,                "note": "most reliable"},
         {"check": "  → XMP",                                    "count": n_xmp,                 "note": "reliable"},
         {"check": "  → FILENAME",                               "count": n_filename,             "note": "reliable"},
-        {"check": "  → fallback time 11:00",                    "count": n_fallback,             "note": "capture time unknown"},
+        {"check": "  → fallback date and time",                    "count": n_fallback,             "note": "capture date & time unknown"},
         {"check": "Quality rows (EXIF/XMP/FILENAME + no-cloud)","count": n_quality,             "note": f"{100*n_quality/n:.1f}% — use these for weather analysis"},
+        {"check": "── Location source (cloud photos only) ──",  "count": "",                   "note": ""},
+        *[
+            {"check": f"  → {src_val}", "count": cnt, "note": note}
+            for src_val, note, cnt in loc_counts
+        ],
+        {"check": "  → no location found",                      "count": n_no_loc_src,          "note": "no metadata GPS, no geocodable title"},
     ]
 
     result = pd.DataFrame(rows)
@@ -310,7 +325,7 @@ def summary_table(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def rows_per_year(df: pd.DataFrame) -> plt.Figure:
-    """Bar chart: number of rows per year. Excludes the 1980 outlier."""
+    """Bar chart: number of rows per year. Excludes <2004 outliers."""
     standard_style()
     df_f  = _filter_valid_year(df)
     years = pd.to_datetime(df_f["date_taken"], errors="coerce").dt.year.dropna().astype(int)
@@ -331,11 +346,27 @@ def rows_per_year(df: pd.DataFrame) -> plt.Figure:
 # B. Geographic spread
 # ============================================================
 
+def _country_code_to_name(code) -> str:
+    """Convert ISO alpha-2 country code to full name; return code as-is if not found."""
+    try:
+        import pycountry
+        c = pycountry.countries.get(alpha_2=str(code).upper())
+        return c.name if c else str(code)
+    except Exception:
+        return str(code)
+
+
 def top_countries_bar(df: pd.DataFrame, n: int = 20) -> plt.Figure:
     """Horizontal bar chart: top N countries, with count labels."""
     standard_style()
     df_f   = _filter_valid_year(df)
-    counts = df_f["country"].value_counts().head(n)
+    counts = (
+        df_f["country"]
+        .dropna()
+        .map(_country_code_to_name)
+        .value_counts()
+        .head(n)
+    )
 
     fig, ax = plt.subplots(figsize=(9, max(4, n * 0.35)))
     bars = ax.barh(counts.index[::-1], counts.values[::-1], color=PALETTE[0])
@@ -360,41 +391,45 @@ def top_countries_bar(df: pd.DataFrame, n: int = 20) -> plt.Figure:
 # ============================================================
 
 def cloud_type_bar(df: pd.DataFrame) -> plt.Figure:
-    """Bar chart: frequency of primary cloud type, sorted descending, counts on top."""
+    """Horizontal bar chart: frequency of primary cloud type, sorted ascending (largest on top)."""
     standard_style()
     df_f   = _filter_valid_year(df)
     labels = _cloud_label(df_f)
-    counts = labels.value_counts().sort_values(ascending=False)
+    counts = labels.value_counts().sort_values(ascending=True)
 
     colors = _color_list(counts.index.tolist())
-    fig, ax = plt.subplots(figsize=(11, 5))
-    bars = ax.bar(counts.index, counts.values, color=colors, width=0.7)
-    ax.bar_label(bars, padding=3, fontsize=10)
-    ax.set_xlabel("Cloud type")
-    ax.set_ylabel("Count")
+    fig, ax = plt.subplots(figsize=(9, max(4, len(counts) * 0.45)))
+    bars = ax.barh(counts.index, counts.values, color=colors, height=0.7)
+    x_max = counts.values.max()
+    for bar, val in zip(bars, counts.values):
+        ax.text(bar.get_width() + x_max * 0.005, bar.get_y() + bar.get_height() / 2,
+                f"{val:,}", va="center", fontsize=10)
+    ax.set_xlabel("Count")
     ax.set_title("Frequency of primary cloud type")
-    ax.tick_params(axis="x", rotation=40)
-    ax.set_ylim(top=counts.values.max() * 1.12)
+    ax.set_xlim(right=x_max * 1.12)
     fig.tight_layout()
     return fig
 
 
 def subtype_bar(df: pd.DataFrame, n: int = 15) -> plt.Figure:
-    """Bar chart: top N subtypes (subtype1 + subtype2 combined), counts on top."""
+    """Horizontal bar chart: top N primary subtypes (subtype1 only), largest on top."""
     standard_style()
-    df_f = _filter_valid_year(df)
-    s1   = df_f["subtype1"].dropna() if "subtype1" in df_f.columns else pd.Series(dtype=str)
-    s2   = df_f["subtype2"].dropna() if "subtype2" in df_f.columns else pd.Series(dtype=str)
-    counts = pd.concat([s1, s2]).str.lower().str.strip().value_counts().head(n)
+    df_f   = _filter_valid_year(df)
+    counts = (
+        df_f["subtype1"].dropna().str.lower().str.strip().value_counts().head(n)
+        if "subtype1" in df_f.columns else pd.Series(dtype=int)
+    )
+    counts = counts.sort_values(ascending=True)
 
-    fig, ax = plt.subplots(figsize=(10, 4))
-    bars = ax.bar(counts.index, counts.values, color=PALETTE[0], width=0.7)
-    ax.bar_label(bars, padding=3, fontsize=10)
-    ax.set_xlabel("Subtype")
-    ax.set_ylabel("Count")
-    ax.set_title(f"Top {n} cloud subtypes")
-    ax.tick_params(axis="x", rotation=40)
-    ax.set_ylim(top=counts.values.max() * 1.12)
+    fig, ax = plt.subplots(figsize=(9, max(4, len(counts) * 0.45)))
+    bars = ax.barh(counts.index, counts.values, color=PALETTE[0], height=0.7)
+    x_max = counts.values.max()
+    for bar, val in zip(bars, counts.values):
+        ax.text(bar.get_width() + x_max * 0.005, bar.get_y() + bar.get_height() / 2,
+                f"{val:,}", va="center", fontsize=10)
+    ax.set_xlabel("Count")
+    ax.set_title(f"Top {n} cloud subtypes  (primary subtype only)")
+    ax.set_xlim(right=x_max * 1.12)
     fig.tight_layout()
     return fig
 
@@ -442,7 +477,7 @@ def cooccurrence_heatmap(df: pd.DataFrame) -> plt.Figure:
     return fig
 
 
-def cooccurrence_cloudtype_subtype(df: pd.DataFrame, n_subtypes: int = 15) -> plt.Figure:
+def cooccurrence_cloudtype_subtype(df: pd.DataFrame, n_subtypes: int = 10) -> plt.Figure:
     """
     Heatmap: how often each cloud_type1 co-occurs with each subtype1.
     Top n_subtypes subtypes on the x-axis.
@@ -538,7 +573,7 @@ def weather_histograms_interactive(df: pd.DataFrame) -> None:
         raise ImportError("ipywidgets is required for interactive plots. "
                           "Install it with: pip install ipywidgets")
 
-    df_f = _filter_valid_year(_filter_good_weather(df)).copy()
+    df_f = _filter_valid_year(df).copy()
     if "temp" in df_f.columns and "dew_point" in df_f.columns:
         df_f["temp_dew_spread"] = df_f["temp"] - df_f["dew_point"]
 
@@ -596,7 +631,7 @@ def boxplots_interactive(df: pd.DataFrame) -> None:
         raise ImportError("ipywidgets is required for interactive plots. "
                           "Install it with: pip install ipywidgets")
 
-    df_f = _filter_valid_year(_filter_good_weather(df)).copy()
+    df_f = _filter_valid_year(df).copy()
     if "temp" in df_f.columns and "dew_point" in df_f.columns:
         df_f["temp_dew_spread"] = df_f["temp"] - df_f["dew_point"]
 
@@ -654,7 +689,7 @@ def dew_spread_by_altitude(df: pd.DataFrame) -> plt.Figure:
     Pass quality_df for reliable results.
     """
     standard_style()
-    df_f = _filter_valid_year(_filter_good_weather(df))
+    df_f = _filter_valid_year(df)
     sub  = df_f[df_f["temp"].notna() & df_f["dew_point"].notna()].copy()
     sub["spread"] = sub["temp"] - sub["dew_point"]
     sub["label"]  = _cloud_label(sub)
@@ -696,8 +731,7 @@ def dew_spread_by_altitude(df: pd.DataFrame) -> plt.Figure:
     ax.set_xticklabels(pos_labels, rotation=40, ha="right")
     ax.axhline(0, color="gray", linestyle="--", linewidth=1, zorder=0)
     ax.set_ylabel("Temp − Dew point  (°C)")
-    ax.set_title("Dew point spread by cloud altitude group\n"
-                 "(small spread = air near saturation = more cloud formation)")
+    ax.set_title("Dew point spread by cloud altitude group")
 
     for sep_x in separator_positions[:-1]:
         ax.axvline(sep_x, color="#DDDDDD", linewidth=1.2, zorder=0)
@@ -728,7 +762,7 @@ def scatter_temp_dew_cloudy(df: pd.DataFrame) -> plt.Figure:
     Pass quality_df for a cleaner result with fewer points.
     """
     standard_style()
-    df_f = _filter_valid_year(_filter_good_weather(df))
+    df_f = _filter_valid_year(df)
     sub  = df_f[df_f["dew_point"].notna() & df_f["temp"].notna()].copy()
 
     fig, ax = plt.subplots(figsize=(8, 7))
