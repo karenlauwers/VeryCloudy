@@ -862,6 +862,7 @@ with tab3:
              "plus all no-cloud rows. Tick this to include fallback-time rows as well.",
     )
     _feel_base = df_all if use_full else make_quality_df(df_all)
+    _feel_base = _feel_base[_feel_base["year"].ge(YEAR_MIN) | _feel_base["year"].isna()]
 
     # ── Filter data ──────────────────────────────────────────
     if feel_all_locs:

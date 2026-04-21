@@ -574,6 +574,8 @@ def weather_histograms_interactive(df: pd.DataFrame) -> None:
                           "Install it with: pip install ipywidgets")
 
     df_f = _filter_valid_year(df).copy()
+    if "temp" in df_f.columns:
+        df_f = df_f.dropna(subset=["temp"])
     if "temp" in df_f.columns and "dew_point" in df_f.columns:
         df_f["temp_dew_spread"] = df_f["temp"] - df_f["dew_point"]
 
@@ -632,6 +634,8 @@ def boxplots_interactive(df: pd.DataFrame) -> None:
                           "Install it with: pip install ipywidgets")
 
     df_f = _filter_valid_year(df).copy()
+    if "temp" in df_f.columns:
+        df_f = df_f.dropna(subset=["temp"])
     if "temp" in df_f.columns and "dew_point" in df_f.columns:
         df_f["temp_dew_spread"] = df_f["temp"] - df_f["dew_point"]
 
